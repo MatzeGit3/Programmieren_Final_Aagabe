@@ -1,12 +1,9 @@
 from math import atan2, cos, radians, sin, sqrt
-from pathlib import Path
 
 import gpxpy
 import pandas as pd
-import streamlit as st
 
 
-GPX_ORDNER = Path("GPX_Datain")
 ERDRADIUS_KM = 6371.0
 
 
@@ -56,66 +53,3 @@ def gpx_zu_dataframe(gpx_text):
                 letzter_punkt = punkt
 
     return pd.DataFrame(punkte), gesamt_distanz_km, gesamt_hoehenmeter
-
-
-def lade_gpx_text():
-    quelle = st.radio(
-        "GPX-Datei auswählen",
-        ["Datei aus Ordner", "Datei hochladen"],
-        horizontal=True,
-    )
-
-    if quelle == "Datei aus Ordner":
-        gpx_dateien = sorted(GPX_ORDNER.glob("*.gpx"))
-
-        if not gpx_dateien:
-            st.warning("Keine GPX-Dateien im Ordner GPX_Datain gefunden.")
-            return None, None
-
-        ausgewaehlte_datei = st.selectbox(
-            "Route auswählen",
-            gpx_dateien,
-            format_func=lambda pfad: pfad.stem,
-        )
-        return ausgewaehlte_datei.read_text(encoding="utf-8"), ausgewaehlte_datei.name
-
-    hochgeladene_datei = st.file_uploader("GPX-Datei hochladen", type=["gpx"])
-
-    if hochgeladene_datei is None:
-        st.info("Bitte lade eine GPX-Datei hoch.")
-        return None, None
-
-    return hochgeladene_datei.read().decode("utf-8"), hochgeladene_datei.name
-
-
-def zeige_routen_stats():
-    st.title("Routen-Statistik aus GPX-Datei")
-
-    gpx_text, dateiname = lade_gpx_text()
-
-    if gpx_text is None:
-        return
-
-    df, gesamt_distanz_km, gesamt_hoehenmeter = gpx_zu_dataframe(gpx_text)
-
-    if df.empty:
-        st.warning("Diese GPX-Datei enthält keine GPS-Punkte.")
-        return
-
-    st.subheader(dateiname)
-
-    spalte1, spalte2, spalte3 = st.columns(3)
-    spalte1.metric("Gesamtlänge", f"{gesamt_distanz_km:.2f} km")
-    spalte2.metric("Gesamte Höhenmeter", f"{gesamt_hoehenmeter:.0f} m")
-    spalte3.metric("GPS-Punkte", f"{len(df)}")
-
-    st.subheader("Höhenprofil")
-    hoehenprofil = df.dropna(subset=["hoehe_m"]).set_index("distanz_km")[["hoehe_m"]]
-
-    if hoehenprofil.empty:
-        st.warning("Diese GPX-Datei enthält keine Höhenangaben.")
-    else:
-        st.line_chart(hoehenprofil)
-
-    st.subheader("Karte")
-    st.map(df, latitude="lat", longitude="lon", zoom=11)
