@@ -1,37 +1,51 @@
-import streamlit as st
-import pandas as pd
+from pathlib import Path
+
 import gpxpy
+import pandas as pd
+import streamlit as st
 
-st.title("GPX-Datei auf Karte anzeigen")
 
-uploaded_file = st.file_uploader(
-    "GPX_Datain/2026-06-11_3029350273_von Innsbruck nach Venedig", type=["gpx"]
-)
+GPX_ORDNER = Path("GPX_Datain")
 
-if uploaded_file is not None:
-    # GPX-Datei lesen
-    gpx_text = uploaded_file.read().decode("utf-8")
+
+def gpx_punkte_auslesen(gpx_text):
     gpx = gpxpy.parse(gpx_text)
+    punkte = []
 
-    points = []
-
-    # Alle GPS-Punkte aus der GPX-Datei holen
     for track in gpx.tracks:
         for segment in track.segments:
-            for point in segment.points:
-                points.append(
+            for punkt in segment.points:
+                punkte.append(
                     {
-                        "lat": point.latitude,
-                        "lon": point.longitude,
-                        "elevation": point.elevation,
+                        "lat": punkt.latitude,
+                        "lon": punkt.longitude,
+                        "elevation": punkt.elevation,
                     }
                 )
 
-    # In DataFrame umwandeln
-    df = pd.DataFrame(points)
+    return pd.DataFrame(punkte)
 
-    st.write("Ausgelesene GPS-Punkte:")
-    st.dataframe(df.head())
 
-    # Karte anzeigen
+def zeige_gpx_karte():
+    st.title("GPX-Datei auf Karte anzeigen")
+
+    gpx_dateien = sorted(GPX_ORDNER.glob("*.gpx"))
+
+    if not gpx_dateien:
+        st.warning("Keine GPX-Dateien im Ordner GPX_Datain gefunden.")
+        return
+
+    ausgewaehlte_datei = st.selectbox(
+        "Route auswählen",
+        gpx_dateien,
+        format_func=lambda pfad: pfad.stem,
+    )
+
+    gpx_text = ausgewaehlte_datei.read_text(encoding="utf-8")
+    df = gpx_punkte_auslesen(gpx_text)
+
+    if df.empty:
+        st.warning("Diese GPX-Datei enthält keine GPS-Punkte.")
+        return
+
     st.map(df, latitude="lat", longitude="lon", zoom=11)
