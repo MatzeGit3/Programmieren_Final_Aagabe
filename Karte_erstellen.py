@@ -1,7 +1,9 @@
 import folium
 
+from popups import start_popup, trinkstellen_popup, ziel_popup
 
-def erstelle_folium_karte(df, routenname="Route"):
+
+def erstelle_folium_karte(df, routenname="Route", trinkstellen=None):
     koordinaten = df[["lat", "lon"]].dropna().values.tolist()
     mittelpunkt = [df["lat"].mean(), df["lon"].mean()]
     karte = folium.Map(location=mittelpunkt, zoom_start=11, tiles="OpenStreetMap")
@@ -16,17 +18,31 @@ def erstelle_folium_karte(df, routenname="Route"):
 
     folium.Marker(
         koordinaten[0],
-        popup=f"Start: {routenname}",
+        popup=start_popup(routenname),
         tooltip="Start",
         icon=folium.Icon(color="green", icon="play"),
     ).add_to(karte)
 
     folium.Marker(
         koordinaten[-1],
-        popup=f"Ziel: {routenname}",
+        popup=ziel_popup(routenname),
         tooltip="Ziel",
         icon=folium.Icon(color="red", icon="flag"),
     ).add_to(karte)
+
+    for stop in trinkstellen or []:
+        latitude = stop.get("latitude")
+        longitude = stop.get("longitude")
+
+        if latitude is None or longitude is None:
+            continue
+
+        folium.Marker(
+            [latitude, longitude],
+            popup=folium.Popup(trinkstellen_popup(stop), max_width=320),
+            tooltip=stop.get("name", "Trinkmöglichkeit"),
+            icon=folium.Icon(color="blue", icon="tint", prefix="fa"),
+        ).add_to(karte)
 
     karte.fit_bounds(koordinaten)
     return karte

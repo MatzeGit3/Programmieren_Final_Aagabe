@@ -6,6 +6,7 @@ import streamlit.components.v1 as components
 from Karte_erstellen import erstelle_folium_karte
 from Routen_Stats import gpx_zu_dataframe
 from gpx_einlesen import gpx_punkte_auslesen
+from popups import lade_trinkstellen
 
 
 GPX_ORDNER = Path("GPX_Datain")
@@ -40,7 +41,7 @@ def lade_gpx_text():
     return hochgeladene_datei.read().decode("utf-8"), hochgeladene_datei.name
 
 
-def zeige_karte(gpx_text, routenname):
+def zeige_karte(gpx_text, routenname, trinkstellen):
     st.title("GPX-Datei auf Folium-Karte anzeigen")
 
     df = gpx_punkte_auslesen(gpx_text)
@@ -49,11 +50,11 @@ def zeige_karte(gpx_text, routenname):
         st.warning("Diese GPX-Datei enthält keine GPS-Punkte.")
         return
 
-    karte = erstelle_folium_karte(df, routenname)
+    karte = erstelle_folium_karte(df, routenname, trinkstellen)
     components.html(karte._repr_html_(), height=650)
 
 
-def zeige_statistik(gpx_text, routenname):
+def zeige_statistik(gpx_text, routenname, trinkstellen):
     st.title("Routen-Statistik aus GPX-Datei")
 
     df, gesamt_distanz_km, gesamt_hoehenmeter = gpx_zu_dataframe(gpx_text)
@@ -78,7 +79,7 @@ def zeige_statistik(gpx_text, routenname):
         st.line_chart(hoehenprofil)
 
     st.subheader("Karte")
-    karte = erstelle_folium_karte(df, routenname)
+    karte = erstelle_folium_karte(df, routenname, trinkstellen)
     components.html(karte._repr_html_(), height=650)
 
 
@@ -96,7 +97,9 @@ def starte_app():
     if gpx_text is None:
         return
 
+    trinkstellen = lade_trinkstellen()
+
     if seite == "Route auf Karte":
-        zeige_karte(gpx_text, routenname)
+        zeige_karte(gpx_text, routenname, trinkstellen)
     else:
-        zeige_statistik(gpx_text, routenname)
+        zeige_statistik(gpx_text, routenname, trinkstellen)
