@@ -9,6 +9,22 @@ from popups import (
 )
 
 
+MAX_KARTENPUNKTE = 1500
+
+
+def _reduziere_koordinaten(koordinaten):
+    if len(koordinaten) <= MAX_KARTENPUNKTE:
+        return koordinaten
+
+    schrittweite = max(1, len(koordinaten) // MAX_KARTENPUNKTE)
+    reduzierte_koordinaten = koordinaten[::schrittweite]
+
+    if reduzierte_koordinaten[-1] != koordinaten[-1]:
+        reduzierte_koordinaten.append(koordinaten[-1])
+
+    return reduzierte_koordinaten
+
+
 def erstelle_folium_karte(
     df,
     routenname="Route",
@@ -17,11 +33,12 @@ def erstelle_folium_karte(
     uebernachtungen=None,
 ):
     koordinaten = df[["lat", "lon"]].dropna().values.tolist()
+    koordinaten_fuer_karte = _reduziere_koordinaten(koordinaten)
     mittelpunkt = [df["lat"].mean(), df["lon"].mean()]
     karte = folium.Map(location=mittelpunkt, zoom_start=11, tiles="OpenStreetMap")
 
     folium.PolyLine(
-        koordinaten,
+        koordinaten_fuer_karte,
         color="blue",
         weight=4,
         opacity=0.8,
@@ -84,5 +101,5 @@ def erstelle_folium_karte(
             icon=folium.Icon(color="purple", icon="bed", prefix="fa"),
         ).add_to(karte)
 
-    karte.fit_bounds(koordinaten)
+    karte.fit_bounds(koordinaten_fuer_karte)
     return karte

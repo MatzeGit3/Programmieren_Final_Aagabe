@@ -16,12 +16,19 @@ ANZEIGE_SPALTEN = {
 }
 
 
-def lade_trinkstellen(gpx_dateiname=None, dateipfad=WATER_STOPS_DATEI):
+@st.cache_data(show_spinner=False)
+def _json_laden(dateipfad):
+    dateipfad = Path(dateipfad)
     if not dateipfad.exists():
-        return []
+        return {}
 
     with dateipfad.open(encoding="utf-8") as datei:
-        daten = json.load(datei)
+        return json.load(datei)
+
+
+@st.cache_data(show_spinner=False)
+def lade_trinkstellen(gpx_dateiname=None, dateipfad=WATER_STOPS_DATEI):
+    daten = _json_laden(dateipfad)
 
     if gpx_dateiname is not None:
         for route in daten.get("routes", []):
@@ -31,12 +38,9 @@ def lade_trinkstellen(gpx_dateiname=None, dateipfad=WATER_STOPS_DATEI):
     return daten.get("stops", [])
 
 
+@st.cache_data(show_spinner=False)
 def lade_essens_spots(gpx_dateiname=None, dateipfad=FOOD_SPOTS_DATEI):
-    if not dateipfad.exists():
-        return []
-
-    with dateipfad.open(encoding="utf-8") as datei:
-        daten = json.load(datei)
+    daten = _json_laden(dateipfad)
 
     routen = daten.get("routes", [])
 
@@ -112,13 +116,11 @@ def bereite_spots_vor(
     gesamt_distanz_km,
     wasser_abstand_km,
     essen_abstand_km,
-    uebernachtung_abstand_km,
 ):
     alle_trinkstellen = []
     alle_essens_spots = []
     angezeigte_trinkstellen = []
     angezeigte_essens_spots = []
-    angezeigte_uebernachtungen = []
 
     if spot_auswahl in ["Wasser", "Wasser und Food"]:
         alle_trinkstellen = lade_trinkstellen(gpx_dateiname)
@@ -145,7 +147,6 @@ def bereite_spots_vor(
     return (
         angezeigte_trinkstellen,
         angezeigte_essens_spots,
-        angezeigte_uebernachtungen,
         alle_spots,
     )
 
@@ -153,7 +154,6 @@ def bereite_spots_vor(
 def bereite_alle_spots_vor(spot_auswahl, gpx_dateiname):
     trinkstellen = []
     essens_spots = []
-    uebernachtungen = []
 
     if spot_auswahl in ["Wasser", "Wasser und Food"]:
         trinkstellen = lade_trinkstellen(gpx_dateiname)
@@ -161,7 +161,7 @@ def bereite_alle_spots_vor(spot_auswahl, gpx_dateiname):
     if spot_auswahl in ["Food", "Wasser und Food"]:
         essens_spots = lade_essens_spots(gpx_dateiname)
 
-    return trinkstellen, essens_spots, uebernachtungen
+    return trinkstellen, essens_spots
 
 
 def spots_zu_dataframe(trinkstellen, essens_spots, uebernachtungen=None):

@@ -6,11 +6,25 @@ from pathlib import Path
 
 
 EXPORT_ORDNER = Path("data/exporte")
+MAX_EXPORT_HOEHENPUNKTE = 1500
 
 
 def _dateiname_bereinigen(text):
     text = re.sub(r"[^A-Za-z0-9_-]+", "_", text).strip("_")
     return text or "route"
+
+
+def _reduziere_hoehenprofil(punkte):
+    if len(punkte) <= MAX_EXPORT_HOEHENPUNKTE:
+        return punkte
+
+    schrittweite = max(1, len(punkte) // MAX_EXPORT_HOEHENPUNKTE)
+    positionen = list(range(0, len(punkte), schrittweite))
+
+    if positionen[-1] != len(punkte) - 1:
+        positionen.append(len(punkte) - 1)
+
+    return [punkte[position] for position in positionen]
 
 
 def erstelle_export_daten(
@@ -32,11 +46,12 @@ def erstelle_export_daten(
     schlafstunden,
     fahrstunden_pro_tag,
 ):
-    hoehenprofil = (
+    hoehenprofil_punkte = (
         df[["distanz_km", "hoehe_m"]]
         .dropna(subset=["hoehe_m"])
         .to_dict(orient="records")
     )
+    hoehenprofil = _reduziere_hoehenprofil(hoehenprofil_punkte)
 
     return {
         "route": {

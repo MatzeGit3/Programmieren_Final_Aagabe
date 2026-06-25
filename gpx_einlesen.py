@@ -1,11 +1,14 @@
 from pathlib import Path
 
-import gpxpy
-import pandas as pd
 import streamlit as st
 
 
 GPX_ORDNER = Path("GPX_Datain")
+
+
+@st.cache_data(show_spinner=False)
+def _datei_lesen(dateipfad):
+    return Path(dateipfad).read_text(encoding="utf-8")
 
 
 def lade_gpx_text():
@@ -27,7 +30,7 @@ def lade_gpx_text():
             format_func=lambda pfad: pfad.stem,
         )
         return (
-            ausgewaehlte_datei.read_text(encoding="utf-8"),
+            _datei_lesen(ausgewaehlte_datei),
             ausgewaehlte_datei.stem,
             ausgewaehlte_datei.name,
         )
@@ -43,21 +46,3 @@ def lade_gpx_text():
         hochgeladene_datei.name,
         hochgeladene_datei.name,
     )
-
-
-def gpx_punkte_auslesen(gpx_text):
-    gpx = gpxpy.parse(gpx_text)
-    punkte = []
-
-    for track in gpx.tracks:
-        for segment in track.segments:
-            for punkt in segment.points:
-                punkte.append(
-                    {
-                        "lat": punkt.latitude,
-                        "lon": punkt.longitude,
-                        "elevation": punkt.elevation,
-                    }
-                )
-
-    return pd.DataFrame(punkte)
