@@ -8,7 +8,6 @@ ERDRADIUS_KM = 6371.0
 
 
 def berechne_distanz_km(lat1, lon1, lat2, lon2):
-    """Berechnet die Entfernung zwischen zwei GPS-Punkten mit der Haversine-Formel."""
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
     delta_lat = lat2 - lat1
     delta_lon = lon2 - lon1
@@ -53,3 +52,8 @@ def gpx_zu_dataframe(gpx_text):
                 letzter_punkt = punkt
 
     return pd.DataFrame(punkte), gesamt_distanz_km, gesamt_hoehenmeter
+
+
+def filtere_route(df, kilometerbereich):
+    start_km, ende_km = kilometerbereich
+    return df[(df["distanz_km"] >= start_km) & (df["distanz_km"] <= ende_km)]

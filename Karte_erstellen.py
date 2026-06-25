@@ -40,7 +40,7 @@ def erstelle_folium_karte(df, routenname="Route", trinkstellen=None, essens_spot
         folium.Marker(
             [latitude, longitude],
             popup=folium.Popup(trinkstellen_popup(stop), max_width=320),
-            tooltip=stop.get("name", "Trinkmöglichkeit"),
+            tooltip=stop.get("name", "Trinkmoeglichkeit"),
             icon=folium.Icon(color="blue", icon="tint", prefix="fa"),
         ).add_to(karte)
 

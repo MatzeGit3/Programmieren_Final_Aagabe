@@ -1,48 +1,3 @@
-import json
-from pathlib import Path
-
-
-WATER_STOPS_DATEI = Path("data/water_stops/route_water_stops.json")
-FOOD_SPOTS_DATEI = Path("data/food_spots/route_food_spots.json")
-
-
-def lade_trinkstellen(gpx_dateiname=None, dateipfad=WATER_STOPS_DATEI):
-    if not dateipfad.exists():
-        return []
-
-    with dateipfad.open(encoding="utf-8") as datei:
-        daten = json.load(datei)
-
-    if gpx_dateiname is not None:
-        for route in daten.get("routes", []):
-            if route.get("source_gpx_file") == gpx_dateiname:
-                return route.get("water_stops", [])
-
-    return daten.get("stops", [])
-
-
-def lade_essens_spots(gpx_dateiname=None, dateipfad=FOOD_SPOTS_DATEI):
-    if not dateipfad.exists():
-        return []
-
-    with dateipfad.open(encoding="utf-8") as datei:
-        daten = json.load(datei)
-
-    routen = daten.get("routes", [])
-
-    if gpx_dateiname is None:
-        spots = []
-        for route in routen:
-            spots.extend(route.get("food_spots", []))
-        return spots
-
-    for route in routen:
-        if route.get("source_gpx_file") == gpx_dateiname:
-            return route.get("food_spots", [])
-
-    return []
-
-
 def start_popup(routenname):
     return f"Start: {routenname}"
 
@@ -52,7 +7,7 @@ def ziel_popup(routenname):
 
 
 def trinkstellen_popup(stop):
-    name = stop.get("name", "Trinkmöglichkeit")
+    name = stop.get("name", "Trinkmoeglichkeit")
     typ = stop.get("type", "Trinkwasser")
     adresse = stop.get("address", "Keine Adresse angegeben")
     route_km = stop.get("route_distance_km")
@@ -68,7 +23,7 @@ def trinkstellen_popup(stop):
     maps_link = ""
 
     if maps_url:
-        maps_link = f'<p><a href="{maps_url}" target="_blank">Karte öffnen</a></p>'
+        maps_link = f'<p><a href="{maps_url}" target="_blank">Karte oeffnen</a></p>'
 
     return f"""
     <strong>{name}</strong>
@@ -98,15 +53,15 @@ def essensspot_popup(spot):
     maps_link = ""
 
     if maps_url:
-        maps_link = f'<p><a href="{maps_url}" target="_blank">Karte öffnen</a></p>'
+        maps_link = f'<p><a href="{maps_url}" target="_blank">Karte oeffnen</a></p>'
 
     return f"""
     <strong>{name}</strong>
     <p>{typ}</p>
-    <p><strong>Küche:</strong> {kueche}</p>
+    <p><strong>Kueche:</strong> {kueche}</p>
     <p>{adresse}</p>
     <p><strong>Bei Route-km:</strong> {route_text}</p>
     <p><strong>Entfernung zur Route:</strong> {entfernung_text}</p>
-    <p><strong>Öffnungszeiten:</strong> {oeffnungszeiten}</p>
+    <p><strong>Oeffnungszeiten:</strong> {oeffnungszeiten}</p>
     {maps_link}
     """
