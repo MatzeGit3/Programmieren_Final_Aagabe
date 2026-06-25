@@ -1,0 +1,5 @@
+[out:json][timeout:25];
+(
+  node["tourism"="hotel"](around:1000,47.265452,11.392760);
+);
+out center tags 10;

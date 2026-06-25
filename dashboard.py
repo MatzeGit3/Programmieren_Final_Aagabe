@@ -27,7 +27,7 @@ from Tabelle_mit_spots import (
 
 APP_TITEL = "GPX-Auswertung"
 ANSICHTEN = ["1. Route ansehen", "2. Spots ansehen", "3. Bericht exportieren"]
-SPOT_OPTIONEN = ["Wasser", "Food", "Uebernachtung", "Alles", "Keine"]
+SPOT_OPTIONEN = ["Wasser", "Food", "Wasser und Food", "Keine"]
 
 
 def zeige_sidebar():
@@ -104,28 +104,26 @@ def zeige_alle_spots(df, routenname, gpx_dateiname):
     st.title("Spots ansehen")
     st.subheader(routenname)
     spot_auswahl = st.radio("Spots anzeigen", SPOT_OPTIONEN, horizontal=True)
-    trinkstellen, essens_spots, uebernachtungen = bereite_alle_spots_vor(
+    trinkstellen, essens_spots, _ = bereite_alle_spots_vor(
         spot_auswahl,
         gpx_dateiname,
     )
-    eigene_trinkstellen, eigene_essens_spots, eigene_uebernachtungen = hole_eigene_spots()
+    eigene_trinkstellen, eigene_essens_spots, _ = hole_eigene_spots()
 
-    if spot_auswahl in ["Wasser", "Alles"]:
+    if spot_auswahl in ["Wasser", "Wasser und Food"]:
         trinkstellen = trinkstellen + eigene_trinkstellen
-    if spot_auswahl in ["Food", "Alles"]:
+    if spot_auswahl in ["Food", "Wasser und Food"]:
         essens_spots = essens_spots + eigene_essens_spots
-    if spot_auswahl in ["Uebernachtung", "Alles"]:
-        uebernachtungen = uebernachtungen + eigene_uebernachtungen
 
     zeige_karte(
         df,
         routenname,
         trinkstellen,
         essens_spots,
-        uebernachtungen,
+        [],
         "Route mit allen Spots",
     )
-    zeige_spot_tabelle(trinkstellen, essens_spots, uebernachtungen)
+    zeige_spot_tabelle(trinkstellen, essens_spots, [])
 
 
 def zeige_export(
@@ -146,9 +144,10 @@ def zeige_export(
     eigene_trinkstellen, eigene_essens_spots, eigene_uebernachtungen = hole_eigene_spots()
 
     with export_tab:
-        st.write("Lege fest, welche Spots in deinen Routenbericht aufgenommen werden.")
-        spot_auswahl = st.radio("Spots fuer Bericht", SPOT_OPTIONEN, horizontal=True)
+        st.write("Lege fest, welche Wasser- und Essens-Spots in deinen Routenbericht aufgenommen werden.")
+        spot_auswahl = st.radio("Versorgungs-Spots fuer Bericht", SPOT_OPTIONEN, horizontal=True)
 
+        st.subheader("Fahrzeit und Schlafpunkte")
         durchschnitt_kmh, fahrzeit_stunden, fahrzeit_text = zeige_fahrzeit_eingabe(
             gesamt_distanz_km,
             "export_durchschnitt",
@@ -166,11 +165,12 @@ def zeige_export(
             schlafstunden,
         )
         st.metric(
-            "Etappenlaenge bis zur naechsten Uebernachtung",
+            "Etappenlaenge bis zum naechsten Schlafpunkt",
             f"{tagesdistanz_km:.1f} km",
             help=f"Berechnet mit {fahrstunden_pro_tag:.1f} Fahrstunden pro Tag.",
         )
 
+        st.subheader("Abstaende fuer Versorgung")
         spalte1, spalte2 = st.columns(2)
         wasser_abstand_km = spalte1.number_input(
             "Maximaler Abstand Wasser",
@@ -197,18 +197,17 @@ def zeige_export(
             essen_abstand_km,
             tagesdistanz_km,
         )
-        if spot_auswahl in ["Wasser", "Alles"]:
+        if spot_auswahl in ["Wasser", "Wasser und Food"]:
             trinkstellen = trinkstellen + eigene_trinkstellen
-        if spot_auswahl in ["Food", "Alles"]:
+        if spot_auswahl in ["Food", "Wasser und Food"]:
             essens_spots = essens_spots + eigene_essens_spots
-        if spot_auswahl in ["Uebernachtung", "Alles"]:
-            berechnete_schlaf_spots = berechne_schlaf_spots(df, tagesdistanz_km)
-            uebernachtungen = berechnete_schlaf_spots + eigene_uebernachtungen
+        berechnete_schlaf_spots = berechne_schlaf_spots(df, tagesdistanz_km)
+        uebernachtungen = berechnete_schlaf_spots + eigene_uebernachtungen
 
         st.info(
             f"Der Bericht enthaelt {len(trinkstellen)} Wasser-Spots und "
             f"{len(essens_spots)} Essens-Spots und "
-            f"{len(uebernachtungen)} Uebernachtungen aus {len(alle_spots)} verfuegbaren Spots. "
+            f"{len(uebernachtungen)} Schlafpunkte aus {len(alle_spots)} verfuegbaren Versorgungs-Spots. "
             f"Davon sind {len(eigene_trinkstellen) + len(eigene_essens_spots) + len(eigene_uebernachtungen)} eigene Spots."
         )
         zeige_kennzahlen(df, gesamt_distanz_km, gesamt_hoehenmeter)

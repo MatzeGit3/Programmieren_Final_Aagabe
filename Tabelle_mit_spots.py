@@ -116,12 +116,11 @@ def bereite_spots_vor(
 ):
     alle_trinkstellen = []
     alle_essens_spots = []
-    alle_uebernachtungen = []
     angezeigte_trinkstellen = []
     angezeigte_essens_spots = []
     angezeigte_uebernachtungen = []
 
-    if spot_auswahl in ["Wasser", "Alles"]:
+    if spot_auswahl in ["Wasser", "Wasser und Food"]:
         alle_trinkstellen = lade_trinkstellen(gpx_dateiname)
         angezeigte_trinkstellen = _waehle_spots_nach_abstand(
             alle_trinkstellen,
@@ -129,18 +128,11 @@ def bereite_spots_vor(
             gesamt_distanz_km,
         )
 
-    if spot_auswahl in ["Food", "Alles"]:
+    if spot_auswahl in ["Food", "Wasser und Food"]:
         alle_essens_spots = lade_essens_spots(gpx_dateiname)
         angezeigte_essens_spots = _waehle_spots_nach_abstand(
             alle_essens_spots,
             essen_abstand_km,
-            gesamt_distanz_km,
-        )
-
-    if spot_auswahl in ["Uebernachtung", "Alles"]:
-        angezeigte_uebernachtungen = _waehle_spots_nach_abstand(
-            alle_uebernachtungen,
-            uebernachtung_abstand_km,
             gesamt_distanz_km,
         )
 
@@ -149,8 +141,6 @@ def bereite_spots_vor(
         alle_spots.append({"kategorie": "Wasser", **spot})
     for spot in alle_essens_spots:
         alle_spots.append({"kategorie": "Food", **spot})
-    for spot in alle_uebernachtungen:
-        alle_spots.append({"kategorie": "Uebernachtung", **spot})
 
     return (
         angezeigte_trinkstellen,
@@ -165,10 +155,10 @@ def bereite_alle_spots_vor(spot_auswahl, gpx_dateiname):
     essens_spots = []
     uebernachtungen = []
 
-    if spot_auswahl in ["Wasser", "Alles"]:
+    if spot_auswahl in ["Wasser", "Wasser und Food"]:
         trinkstellen = lade_trinkstellen(gpx_dateiname)
 
-    if spot_auswahl in ["Food", "Alles"]:
+    if spot_auswahl in ["Food", "Wasser und Food"]:
         essens_spots = lade_essens_spots(gpx_dateiname)
 
     return trinkstellen, essens_spots, uebernachtungen
@@ -184,7 +174,7 @@ def spots_zu_dataframe(trinkstellen, essens_spots, uebernachtungen=None):
         zeilen.append({"kategorie": "Food", **spot})
 
     for spot in uebernachtungen or []:
-        zeilen.append({"kategorie": "Uebernachtung", **spot})
+        zeilen.append({"kategorie": "Schlafpunkt", **spot})
 
     if not zeilen:
         return pd.DataFrame(columns=ANZEIGE_SPALTEN.keys())

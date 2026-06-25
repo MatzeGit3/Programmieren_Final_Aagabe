@@ -35,7 +35,7 @@ def zeige_eigene_spots_formular(gesamt_distanz_km):
     with st.form("eigener_spot_formular", clear_on_submit=True):
         kategorie = st.radio(
             "Kategorie",
-            ["Wasser", "Food", "Uebernachtung"],
+            ["Wasser", "Food", "Schlafpunkt"],
             horizontal=True,
         )
         name = st.text_input("Name des Spots")

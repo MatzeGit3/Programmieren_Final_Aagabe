@@ -68,7 +68,7 @@ def essensspot_popup(spot):
 
 
 def uebernachtung_popup(spot):
-    name = spot.get("name", "Uebernachtung")
+    name = spot.get("name", "Schlafpunkt")
     adresse = spot.get("address", "Keine Adresse angegeben")
     route_km = spot.get("route_distance_km")
     entfernung = spot.get("distance_from_route_km")
@@ -81,7 +81,7 @@ def uebernachtung_popup(spot):
 
     return f"""
     <strong>{name}</strong>
-    <p>Uebernachtung</p>
+    <p>Schlafpunkt</p>
     <p>{adresse}</p>
     <p><strong>Bei Route-km:</strong> {route_text}</p>
     <p><strong>Entfernung zur Route:</strong> {entfernung_text}</p>

@@ -55,12 +55,12 @@ def erstelle_export_daten(
         "spot_abstaende_km": {
             "wasser": wasser_abstand_km,
             "essen": essen_abstand_km,
-            "uebernachtung": uebernachtung_abstand_km,
+            "schlafpunkte": uebernachtung_abstand_km,
         },
         "ausgewaehlte_spots": {
             "wasser": trinkstellen,
             "food": essens_spots,
-            "uebernachtung": uebernachtungen,
+            "schlafpunkte": uebernachtungen,
         },
         "hoehenprofil": hoehenprofil,
         "karte_html": karte_html,
@@ -145,6 +145,8 @@ def export_als_html_text(export_daten):
     fahrzeit = export_daten["fahrzeit"]
     abstaende = export_daten["spot_abstaende_km"]
     spots = export_daten["ausgewaehlte_spots"]
+    schlafpunkte = spots.get("schlafpunkte", spots.get("uebernachtung", []))
+    schlafpunkt_distanz = abstaende.get("schlafpunkte", abstaende.get("uebernachtung", 0))
     hoehenprofil = export_daten.get("hoehenprofil", [])
     karte_html = export_daten.get("karte_html", "")
 
@@ -223,7 +225,7 @@ def export_als_html_text(export_daten):
     </div>
     <div class="wert">
       <div class="label">Spot-Abstand</div>
-      <div class="zahl">W {abstaende["wasser"]} km / E {abstaende["essen"]} km / U {abstaende["uebernachtung"]:.1f} km</div>
+      <div class="zahl">W {abstaende["wasser"]} km / E {abstaende["essen"]} km / Schlaf {schlafpunkt_distanz:.1f} km</div>
     </div>
     <div class="wert">
       <div class="label">Geschaetzte Fahrzeit</div>
@@ -256,10 +258,10 @@ def export_als_html_text(export_daten):
       <tbody>{_spot_zeilen_html(spots["food"])}</tbody>
     </table>
 
-    <h2>Uebernachtungen</h2>
+    <h2>Schlafpunkte</h2>
     <table>
       <thead><tr><th>Name</th><th>Route-km</th><th>Entfernung</th><th>Adresse</th></tr></thead>
-      <tbody>{_spot_zeilen_html(spots["uebernachtung"])}</tbody>
+      <tbody>{_spot_zeilen_html(schlafpunkte)}</tbody>
     </table>
   </section>
 </body>

@@ -80,7 +80,7 @@ def erstelle_folium_karte(
         folium.Marker(
             [latitude, longitude],
             popup=folium.Popup(uebernachtung_popup(spot), max_width=340),
-            tooltip=spot.get("name", "Uebernachtung"),
+            tooltip=spot.get("name", "Schlafpunkt"),
             icon=folium.Icon(color="purple", icon="bed", prefix="fa"),
         ).add_to(karte)
 
