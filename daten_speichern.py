@@ -21,9 +21,16 @@ def erstelle_export_daten(
     gesamt_hoehenmeter,
     wasser_abstand_km,
     essen_abstand_km,
+    uebernachtung_abstand_km,
     trinkstellen,
     essens_spots,
+    uebernachtungen,
     karte_html,
+    durchschnitt_kmh,
+    fahrzeit_stunden,
+    fahrzeit_text,
+    schlafstunden,
+    fahrstunden_pro_tag,
 ):
     hoehenprofil = (
         df[["distanz_km", "hoehe_m"]]
@@ -38,13 +45,22 @@ def erstelle_export_daten(
             "gesamt_distanz_km": gesamt_distanz_km,
             "gesamt_hoehenmeter": gesamt_hoehenmeter,
         },
+        "fahrzeit": {
+            "durchschnitt_kmh": durchschnitt_kmh,
+            "stunden": fahrzeit_stunden,
+            "anzeige": fahrzeit_text,
+            "schlafstunden_pro_tag": schlafstunden,
+            "fahrstunden_pro_tag": fahrstunden_pro_tag,
+        },
         "spot_abstaende_km": {
             "wasser": wasser_abstand_km,
             "essen": essen_abstand_km,
+            "uebernachtung": uebernachtung_abstand_km,
         },
         "ausgewaehlte_spots": {
             "wasser": trinkstellen,
             "food": essens_spots,
+            "uebernachtung": uebernachtungen,
         },
         "hoehenprofil": hoehenprofil,
         "karte_html": karte_html,
@@ -76,10 +92,60 @@ def _spot_zeilen_html(spots):
     return "\n".join(zeilen)
 
 
+def _hoehenprofil_svg(hoehenprofil):
+    if len(hoehenprofil) < 2:
+        return "<p>Kein Hoehenprofil verfuegbar.</p>"
+
+    breite = 900
+    hoehe = 260
+    rand_links = 56
+    rand_rechts = 24
+    rand_oben = 24
+    rand_unten = 42
+
+    distanzen = [punkt["distanz_km"] for punkt in hoehenprofil]
+    hoehen = [punkt["hoehe_m"] for punkt in hoehenprofil]
+    min_distanz = min(distanzen)
+    max_distanz = max(distanzen)
+    min_hoehe = min(hoehen)
+    max_hoehe = max(hoehen)
+    distanz_spanne = max(max_distanz - min_distanz, 1)
+    hoehen_spanne = max(max_hoehe - min_hoehe, 1)
+
+    def x_position(distanz):
+        nutzbare_breite = breite - rand_links - rand_rechts
+        return rand_links + ((distanz - min_distanz) / distanz_spanne) * nutzbare_breite
+
+    def y_position(hoehenwert):
+        nutzbare_hoehe = hoehe - rand_oben - rand_unten
+        return rand_oben + (1 - ((hoehenwert - min_hoehe) / hoehen_spanne)) * nutzbare_hoehe
+
+    punkte = " ".join(
+        f"{x_position(punkt['distanz_km']):.1f},{y_position(punkt['hoehe_m']):.1f}"
+        for punkt in hoehenprofil
+    )
+    x_achse_y = hoehe - rand_unten
+
+    return f"""
+    <svg viewBox="0 0 {breite} {hoehe}" width="100%" height="280" role="img" aria-label="Hoehenprofil">
+      <rect x="0" y="0" width="{breite}" height="{hoehe}" fill="#ffffff"/>
+      <line x1="{rand_links}" y1="{x_achse_y}" x2="{breite - rand_rechts}" y2="{x_achse_y}" stroke="#9fb3c8"/>
+      <line x1="{rand_links}" y1="{rand_oben}" x2="{rand_links}" y2="{x_achse_y}" stroke="#9fb3c8"/>
+      <text x="{rand_links}" y="{hoehe - 10}" fill="#52606d" font-size="13">0 km</text>
+      <text x="{breite - 110}" y="{hoehe - 10}" fill="#52606d" font-size="13">{max_distanz:.1f} km</text>
+      <text x="8" y="{y_position(max_hoehe) + 4:.1f}" fill="#52606d" font-size="13">{max_hoehe:.0f} m</text>
+      <text x="8" y="{y_position(min_hoehe) + 4:.1f}" fill="#52606d" font-size="13">{min_hoehe:.0f} m</text>
+      <polyline points="{punkte}" fill="none" stroke="#2f80ed" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+    </svg>
+    """
+
+
 def export_als_html_text(export_daten):
     route = export_daten["route"]
+    fahrzeit = export_daten["fahrzeit"]
     abstaende = export_daten["spot_abstaende_km"]
     spots = export_daten["ausgewaehlte_spots"]
+    hoehenprofil = export_daten.get("hoehenprofil", [])
     karte_html = export_daten.get("karte_html", "")
 
     return f"""<!doctype html>
@@ -99,7 +165,7 @@ def export_als_html_text(export_daten):
     }}
     .kennzahlen {{
       display: grid;
-      grid-template-columns: repeat(3, minmax(160px, 1fr));
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
       gap: 16px;
       margin: 24px 0;
     }}
@@ -157,13 +223,24 @@ def export_als_html_text(export_daten):
     </div>
     <div class="wert">
       <div class="label">Spot-Abstand</div>
-      <div class="zahl">W {abstaende["wasser"]} km / E {abstaende["essen"]} km</div>
+      <div class="zahl">W {abstaende["wasser"]} km / E {abstaende["essen"]} km / U {abstaende["uebernachtung"]:.1f} km</div>
+    </div>
+    <div class="wert">
+      <div class="label">Geschaetzte Fahrzeit</div>
+      <div class="zahl">{escape(fahrzeit["anzeige"])}</div>
+      <div class="label">bei {fahrzeit["durchschnitt_kmh"]:.1f} km/h</div>
+      <div class="label">{fahrzeit["schlafstunden_pro_tag"]:.1f} h Schlaf pro Tag</div>
     </div>
   </section>
 
   <section class="karte">
     <h2>Karte</h2>
     {karte_html}
+  </section>
+
+  <section class="box">
+    <h2>Hoehenprofil</h2>
+    {_hoehenprofil_svg(hoehenprofil)}
   </section>
 
   <section class="box">
@@ -177,6 +254,12 @@ def export_als_html_text(export_daten):
     <table>
       <thead><tr><th>Name</th><th>Route-km</th><th>Entfernung</th><th>Adresse</th></tr></thead>
       <tbody>{_spot_zeilen_html(spots["food"])}</tbody>
+    </table>
+
+    <h2>Uebernachtungen</h2>
+    <table>
+      <thead><tr><th>Name</th><th>Route-km</th><th>Entfernung</th><th>Adresse</th></tr></thead>
+      <tbody>{_spot_zeilen_html(spots["uebernachtung"])}</tbody>
     </table>
   </section>
 </body>

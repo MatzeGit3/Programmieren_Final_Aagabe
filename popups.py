@@ -65,3 +65,25 @@ def essensspot_popup(spot):
     <p><strong>Oeffnungszeiten:</strong> {oeffnungszeiten}</p>
     {maps_link}
     """
+
+
+def uebernachtung_popup(spot):
+    name = spot.get("name", "Uebernachtung")
+    adresse = spot.get("address", "Keine Adresse angegeben")
+    route_km = spot.get("route_distance_km")
+    entfernung = spot.get("distance_from_route_km")
+    notiz = spot.get("note") or "keine"
+
+    route_text = f"{route_km:.1f} km" if isinstance(route_km, (int, float)) else "unbekannt"
+    entfernung_text = (
+        f"{entfernung:.2f} km" if isinstance(entfernung, (int, float)) else "unbekannt"
+    )
+
+    return f"""
+    <strong>{name}</strong>
+    <p>Uebernachtung</p>
+    <p>{adresse}</p>
+    <p><strong>Bei Route-km:</strong> {route_text}</p>
+    <p><strong>Entfernung zur Route:</strong> {entfernung_text}</p>
+    <p><strong>Notiz:</strong> {notiz}</p>
+    """

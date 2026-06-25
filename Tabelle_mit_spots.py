@@ -112,13 +112,16 @@ def bereite_spots_vor(
     gesamt_distanz_km,
     wasser_abstand_km,
     essen_abstand_km,
+    uebernachtung_abstand_km,
 ):
     alle_trinkstellen = []
     alle_essens_spots = []
+    alle_uebernachtungen = []
     angezeigte_trinkstellen = []
     angezeigte_essens_spots = []
+    angezeigte_uebernachtungen = []
 
-    if spot_auswahl in ["Wasser", "Beides"]:
+    if spot_auswahl in ["Wasser", "Alles"]:
         alle_trinkstellen = lade_trinkstellen(gpx_dateiname)
         angezeigte_trinkstellen = _waehle_spots_nach_abstand(
             alle_trinkstellen,
@@ -126,11 +129,18 @@ def bereite_spots_vor(
             gesamt_distanz_km,
         )
 
-    if spot_auswahl in ["Food", "Beides"]:
+    if spot_auswahl in ["Food", "Alles"]:
         alle_essens_spots = lade_essens_spots(gpx_dateiname)
         angezeigte_essens_spots = _waehle_spots_nach_abstand(
             alle_essens_spots,
             essen_abstand_km,
+            gesamt_distanz_km,
+        )
+
+    if spot_auswahl in ["Uebernachtung", "Alles"]:
+        angezeigte_uebernachtungen = _waehle_spots_nach_abstand(
+            alle_uebernachtungen,
+            uebernachtung_abstand_km,
             gesamt_distanz_km,
         )
 
@@ -139,24 +149,32 @@ def bereite_spots_vor(
         alle_spots.append({"kategorie": "Wasser", **spot})
     for spot in alle_essens_spots:
         alle_spots.append({"kategorie": "Food", **spot})
+    for spot in alle_uebernachtungen:
+        alle_spots.append({"kategorie": "Uebernachtung", **spot})
 
-    return angezeigte_trinkstellen, angezeigte_essens_spots, alle_spots
+    return (
+        angezeigte_trinkstellen,
+        angezeigte_essens_spots,
+        angezeigte_uebernachtungen,
+        alle_spots,
+    )
 
 
 def bereite_alle_spots_vor(spot_auswahl, gpx_dateiname):
     trinkstellen = []
     essens_spots = []
+    uebernachtungen = []
 
-    if spot_auswahl in ["Wasser", "Beides"]:
+    if spot_auswahl in ["Wasser", "Alles"]:
         trinkstellen = lade_trinkstellen(gpx_dateiname)
 
-    if spot_auswahl in ["Food", "Beides"]:
+    if spot_auswahl in ["Food", "Alles"]:
         essens_spots = lade_essens_spots(gpx_dateiname)
 
-    return trinkstellen, essens_spots
+    return trinkstellen, essens_spots, uebernachtungen
 
 
-def spots_zu_dataframe(trinkstellen, essens_spots):
+def spots_zu_dataframe(trinkstellen, essens_spots, uebernachtungen=None):
     zeilen = []
 
     for spot in trinkstellen:
@@ -164,6 +182,9 @@ def spots_zu_dataframe(trinkstellen, essens_spots):
 
     for spot in essens_spots:
         zeilen.append({"kategorie": "Food", **spot})
+
+    for spot in uebernachtungen or []:
+        zeilen.append({"kategorie": "Uebernachtung", **spot})
 
     if not zeilen:
         return pd.DataFrame(columns=ANZEIGE_SPALTEN.keys())
@@ -176,10 +197,10 @@ def spots_zu_dataframe(trinkstellen, essens_spots):
     return dataframe[list(ANZEIGE_SPALTEN.keys())].rename(columns=ANZEIGE_SPALTEN)
 
 
-def zeige_spot_tabelle(trinkstellen, essens_spots):
+def zeige_spot_tabelle(trinkstellen, essens_spots, uebernachtungen=None):
     st.subheader("Spot-Liste")
 
-    spot_tabelle = spots_zu_dataframe(trinkstellen, essens_spots)
+    spot_tabelle = spots_zu_dataframe(trinkstellen, essens_spots, uebernachtungen)
     if spot_tabelle.empty:
         st.info("Keine passenden Spots gefunden.")
         return
