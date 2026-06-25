@@ -15,13 +15,11 @@ def _dateiname_bereinigen(text):
 def erstelle_export_daten(
     routenname,
     gpx_dateiname,
-    kilometerbereich,
-    df_abschnitt,
+    df,
     gesamt_distanz_km,
     gesamt_hoehenmeter,
     trinkstellen,
     essens_spots,
-    spot_merkliste,
 ):
     return {
         "route": {
@@ -29,17 +27,12 @@ def erstelle_export_daten(
             "gpx_datei": gpx_dateiname,
             "gesamt_distanz_km": gesamt_distanz_km,
             "gesamt_hoehenmeter": gesamt_hoehenmeter,
-            "kilometerbereich": {
-                "von_km": kilometerbereich[0],
-                "bis_km": kilometerbereich[1],
-            },
         },
-        "gps_punkte_im_abschnitt": df_abschnitt.to_dict(orient="records"),
+        "gps_punkte": df.to_dict(orient="records"),
         "angezeigte_spots": {
             "wasser": trinkstellen,
             "food": essens_spots,
         },
-        "gemerkte_spots": spot_merkliste,
     }
 
 
