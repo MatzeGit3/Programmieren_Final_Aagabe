@@ -10,7 +10,6 @@ FOOD_SPOTS_DATEI = Path("data/food_spots/route_food_spots.json")
 ANZEIGE_SPALTEN = {
     "kategorie": "Kategorie",
     "name": "Name",
-    "type": "Typ",
     "route_distance_km": "Route-km",
     "distance_from_route_km": "Entfernung zur Route (km)",
     "address": "Adresse",
@@ -178,11 +177,19 @@ def spots_zu_dataframe(trinkstellen, essens_spots):
 
 
 def zeige_spot_tabelle(trinkstellen, essens_spots):
-    st.subheader("Spots")
+    st.subheader("Spot-Liste")
 
     spot_tabelle = spots_zu_dataframe(trinkstellen, essens_spots)
     if spot_tabelle.empty:
         st.info("Keine passenden Spots gefunden.")
         return
 
-    st.dataframe(spot_tabelle, use_container_width=True, hide_index=True)
+    st.dataframe(
+        spot_tabelle,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Route-km": st.column_config.NumberColumn(format="%.1f km"),
+            "Entfernung zur Route (km)": st.column_config.NumberColumn(format="%.2f km"),
+        },
+    )
