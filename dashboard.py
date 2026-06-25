@@ -11,60 +11,105 @@ from Hoehenprofil import zeige_hoehenprofil
 from Karte_erstellen import erstelle_folium_karte
 from Routen_Stats import gpx_zu_dataframe
 from Tabelle_mit_spots import (
+    bereite_alle_spots_vor,
     bereite_spots_vor,
     zeige_spot_tabelle,
 )
 
 
 APP_TITEL = "GPX-Auswertung"
-ANSICHTEN = ["Dashboard", "Route auf Karte", "Routen-Statistik"]
+ANSICHTEN = ["Hauptansicht", "Alle Spots", "Export"]
 SPOT_OPTIONEN = ["Wasser", "Food", "Beides", "Keine"]
 
 
 def zeige_sidebar():
     st.sidebar.title(APP_TITEL)
-    ansicht = st.sidebar.selectbox("Ansicht auswaehlen", ANSICHTEN)
-    spot_auswahl = st.sidebar.radio("Spots anzeigen", SPOT_OPTIONEN)
-    spot_anzahl = st.sidebar.number_input(
-        "Maximale Anzahl Spots",
-        min_value=1,
-        max_value=100,
-        value=10,
-        step=1,
-    )
-
-    return ansicht, spot_auswahl, spot_anzahl
+    return st.sidebar.selectbox("Ansicht auswaehlen", ANSICHTEN)
 
 
-def zeige_kennzahlen(df, gesamt_distanz_km, gesamt_hoehenmeter, trinkstellen, essens_spots):
-    spalte1, spalte2, spalte3, spalte4 = st.columns(4)
+def zeige_kennzahlen(df, gesamt_distanz_km, gesamt_hoehenmeter):
+    spalte1, spalte2, spalte3 = st.columns(3)
     spalte1.metric("Gesamtlaenge", f"{gesamt_distanz_km:.2f} km")
     spalte2.metric("Hoehenmeter", f"{gesamt_hoehenmeter:.0f} m")
     spalte3.metric("GPS-Punkte", f"{len(df)}")
-    spalte4.metric("Spots", f"{len(trinkstellen) + len(essens_spots)}")
 
 
-def zeige_karte(df, routenname, trinkstellen, essens_spots, titel="Karte"):
+def zeige_karte(df, routenname, trinkstellen=None, essens_spots=None, titel="Karte"):
     st.subheader(titel)
+
+    if df.empty:
+        st.warning("In dieser Route liegen keine GPS-Punkte.")
+        return None
+
+    karte = erstelle_folium_karte(df, routenname, trinkstellen or [], essens_spots or [])
+    components.html(karte._repr_html_(), height=650)
+    return karte
+
+
+def zeige_hauptansicht(df, routenname, gesamt_distanz_km, gesamt_hoehenmeter):
+    st.title("Hauptansicht")
+    st.subheader(routenname)
 
     if df.empty:
         st.warning("In dieser Route liegen keine GPS-Punkte.")
         return
 
-    karte = erstelle_folium_karte(df, routenname, trinkstellen, essens_spots)
-    components.html(karte._repr_html_(), height=650)
+    zeige_kennzahlen(df, gesamt_distanz_km, gesamt_hoehenmeter)
+    zeige_karte(df, routenname, [], [], "Route ohne Spots")
+    zeige_hoehenprofil(df)
+
+
+def zeige_alle_spots(df, routenname, gpx_dateiname):
+    st.title("Alle Spots")
+    st.subheader(routenname)
+    spot_auswahl = st.radio("Spots anzeigen", SPOT_OPTIONEN, horizontal=True)
+    trinkstellen, essens_spots = bereite_alle_spots_vor(spot_auswahl, gpx_dateiname)
+
+    zeige_karte(df, routenname, trinkstellen, essens_spots, "Route mit allen Spots")
+    zeige_spot_tabelle(trinkstellen, essens_spots)
 
 
 def zeige_export(
+    df,
     routenname,
     gpx_dateiname,
-    df,
     gesamt_distanz_km,
     gesamt_hoehenmeter,
-    trinkstellen,
-    essens_spots,
 ):
-    st.subheader("Daten speichern")
+    st.title("Export")
+    st.subheader(routenname)
+
+    spot_auswahl = st.radio("Spots exportieren", SPOT_OPTIONEN, horizontal=True)
+    wasser_abstand_km = st.number_input(
+        "Maximaler Abstand Wasser-Spots in km",
+        min_value=1,
+        max_value=500,
+        value=50,
+        step=1,
+    )
+    essen_abstand_km = st.number_input(
+        "Maximaler Abstand Essens-Spots in km",
+        min_value=1,
+        max_value=500,
+        value=100,
+        step=1,
+    )
+
+    trinkstellen, essens_spots, alle_spots = bereite_spots_vor(
+        spot_auswahl,
+        gpx_dateiname,
+        gesamt_distanz_km,
+        wasser_abstand_km,
+        essen_abstand_km,
+    )
+
+    st.caption(
+        f"{len(trinkstellen) + len(essens_spots)} von {len(alle_spots)} passenden Spots werden exportiert"
+    )
+    zeige_kennzahlen(df, gesamt_distanz_km, gesamt_hoehenmeter)
+    karte = zeige_karte(df, routenname, trinkstellen, essens_spots, "Route mit Spots")
+    zeige_hoehenprofil(df)
+    zeige_spot_tabelle(trinkstellen, essens_spots)
 
     export_daten = erstelle_export_daten(
         routenname,
@@ -72,127 +117,48 @@ def zeige_export(
         df,
         gesamt_distanz_km,
         gesamt_hoehenmeter,
+        wasser_abstand_km,
+        essen_abstand_km,
         trinkstellen,
         essens_spots,
+        karte._repr_html_() if karte is not None else "",
     )
     json_text = export_als_json_text(export_daten)
 
     spalte1, spalte2 = st.columns(2)
-    if spalte1.button("Alle Daten als Datei speichern", use_container_width=True):
+    if spalte1.button("Export als Datei speichern", use_container_width=True):
         ziel = speichere_export_datei(routenname, export_daten)
         st.success(f"Gespeichert: {ziel}")
 
     spalte2.download_button(
-        "Alle Daten herunterladen",
+        "Export herunterladen",
         data=json_text,
-        file_name=f"{routenname}.json",
+        file_name=f"{routenname}_export.json",
         mime="application/json",
         use_container_width=True,
     )
 
 
-def zeige_dashboard(
-    df,
-    routenname,
-    gpx_dateiname,
-    gesamt_distanz_km,
-    gesamt_hoehenmeter,
-    trinkstellen,
-    essens_spots,
-):
-    st.title(APP_TITEL)
-    st.subheader(routenname)
-
-    if df.empty:
-        st.warning("In dieser Route liegen keine GPS-Punkte.")
-        return
-
-    zeige_kennzahlen(
-        df,
-        gesamt_distanz_km,
-        gesamt_hoehenmeter,
-        trinkstellen,
-        essens_spots,
-    )
-    zeige_karte(df, routenname, trinkstellen, essens_spots, "Route")
-    zeige_hoehenprofil(df)
-    zeige_spot_tabelle(trinkstellen, essens_spots)
-    zeige_export(
-        routenname,
-        gpx_dateiname,
-        df,
-        gesamt_distanz_km,
-        gesamt_hoehenmeter,
-        trinkstellen,
-        essens_spots,
-    )
-
-
-def zeige_routen_statistik(
-    df,
-    routenname,
-    gesamt_distanz_km,
-    gesamt_hoehenmeter,
-    trinkstellen,
-    essens_spots,
-):
-    st.title("Routen-Statistik")
-    st.subheader(routenname)
-
-    if df.empty:
-        st.warning("In dieser Route liegen keine GPS-Punkte.")
-        return
-
-    zeige_kennzahlen(
-        df,
-        gesamt_distanz_km,
-        gesamt_hoehenmeter,
-        trinkstellen,
-        essens_spots,
-    )
-    zeige_hoehenprofil(df)
-    zeige_spot_tabelle(trinkstellen, essens_spots)
-
-
 def starte_app():
     st.set_page_config(page_title=APP_TITEL, layout="wide")
 
-    ansicht, spot_auswahl, spot_anzahl = zeige_sidebar()
+    ansicht = zeige_sidebar()
     gpx_text, routenname, gpx_dateiname = lade_gpx_text()
 
     if gpx_text is None:
         return
 
     df, gesamt_distanz_km, gesamt_hoehenmeter = gpx_zu_dataframe(gpx_text)
-    trinkstellen, essens_spots, alle_spots = bereite_spots_vor(
-        spot_auswahl,
-        gpx_dateiname,
-        spot_anzahl,
-    )
 
-    st.sidebar.caption(
-        f"{len(trinkstellen) + len(essens_spots)} von {len(alle_spots)} Spots werden angezeigt"
-    )
-
-    if ansicht == "Route auf Karte":
-        st.title("Route auf Karte")
-        zeige_karte(df, routenname, trinkstellen, essens_spots, routenname)
-    elif ansicht == "Routen-Statistik":
-        zeige_routen_statistik(
-            df,
-            routenname,
-            gesamt_distanz_km,
-            gesamt_hoehenmeter,
-            trinkstellen,
-            essens_spots,
-        )
-    else:
-        zeige_dashboard(
+    if ansicht == "Alle Spots":
+        zeige_alle_spots(df, routenname, gpx_dateiname)
+    elif ansicht == "Export":
+        zeige_export(
             df,
             routenname,
             gpx_dateiname,
             gesamt_distanz_km,
             gesamt_hoehenmeter,
-            trinkstellen,
-            essens_spots,
         )
+    else:
+        zeige_hauptansicht(df, routenname, gesamt_distanz_km, gesamt_hoehenmeter)

@@ -18,9 +18,18 @@ def erstelle_export_daten(
     df,
     gesamt_distanz_km,
     gesamt_hoehenmeter,
+    wasser_abstand_km,
+    essen_abstand_km,
     trinkstellen,
     essens_spots,
+    karte_html,
 ):
+    hoehenprofil = (
+        df[["distanz_km", "hoehe_m"]]
+        .dropna(subset=["hoehe_m"])
+        .to_dict(orient="records")
+    )
+
     return {
         "route": {
             "name": routenname,
@@ -28,11 +37,16 @@ def erstelle_export_daten(
             "gesamt_distanz_km": gesamt_distanz_km,
             "gesamt_hoehenmeter": gesamt_hoehenmeter,
         },
-        "gps_punkte": df.to_dict(orient="records"),
-        "angezeigte_spots": {
+        "spot_abstaende_km": {
+            "wasser": wasser_abstand_km,
+            "essen": essen_abstand_km,
+        },
+        "ausgewaehlte_spots": {
             "wasser": trinkstellen,
             "food": essens_spots,
         },
+        "hoehenprofil": hoehenprofil,
+        "karte_html": karte_html,
     }
 
 

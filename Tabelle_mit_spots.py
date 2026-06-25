@@ -54,14 +54,97 @@ def lade_essens_spots(gpx_dateiname=None, dateipfad=FOOD_SPOTS_DATEI):
     return []
 
 
-def _begrenze_spots(spots, anzahl):
-    return sorted(
-        spots,
-        key=lambda spot: spot.get("route_distance_km", float("inf")),
-    )[:anzahl]
+def _spot_distanz(spot):
+    route_km = spot.get("route_distance_km")
+
+    if isinstance(route_km, (int, float)):
+        return route_km
+
+    return None
 
 
-def bereite_spots_vor(spot_auswahl, gpx_dateiname, maximale_anzahl):
+def _waehle_spots_nach_abstand(spots, abstand_km, gesamt_distanz_km):
+    spots_mit_distanz = [spot for spot in spots if _spot_distanz(spot) is not None]
+
+    if not spots_mit_distanz:
+        return []
+
+    spots_mit_distanz = sorted(spots_mit_distanz, key=_spot_distanz)
+    ausgewaehlte_spots = []
+    ausgewaehlte_ids = set()
+    abschnitt_start_km = 0
+
+    while abschnitt_start_km < gesamt_distanz_km:
+        abschnitt_ende_km = min(abschnitt_start_km + abstand_km, gesamt_distanz_km)
+        spots_im_abschnitt = [
+            spot
+            for spot in spots_mit_distanz
+            if abschnitt_start_km <= _spot_distanz(spot) <= abschnitt_ende_km
+        ]
+
+        if spots_im_abschnitt:
+            naechster_spot = min(
+                spots_im_abschnitt,
+                key=lambda spot: abs(_spot_distanz(spot) - abschnitt_ende_km),
+            )
+        else:
+            naechster_spot = min(
+                spots_mit_distanz,
+                key=lambda spot: abs(_spot_distanz(spot) - abschnitt_ende_km),
+            )
+
+        spot_id = naechster_spot.get("id") or (
+            naechster_spot.get("name"),
+            _spot_distanz(naechster_spot),
+        )
+
+        if spot_id not in ausgewaehlte_ids:
+            ausgewaehlte_spots.append(naechster_spot)
+            ausgewaehlte_ids.add(spot_id)
+
+        abschnitt_start_km = abschnitt_ende_km
+
+    return sorted(ausgewaehlte_spots, key=_spot_distanz)
+
+
+def bereite_spots_vor(
+    spot_auswahl,
+    gpx_dateiname,
+    gesamt_distanz_km,
+    wasser_abstand_km,
+    essen_abstand_km,
+):
+    alle_trinkstellen = []
+    alle_essens_spots = []
+    angezeigte_trinkstellen = []
+    angezeigte_essens_spots = []
+
+    if spot_auswahl in ["Wasser", "Beides"]:
+        alle_trinkstellen = lade_trinkstellen(gpx_dateiname)
+        angezeigte_trinkstellen = _waehle_spots_nach_abstand(
+            alle_trinkstellen,
+            wasser_abstand_km,
+            gesamt_distanz_km,
+        )
+
+    if spot_auswahl in ["Food", "Beides"]:
+        alle_essens_spots = lade_essens_spots(gpx_dateiname)
+        angezeigte_essens_spots = _waehle_spots_nach_abstand(
+            alle_essens_spots,
+            essen_abstand_km,
+            gesamt_distanz_km,
+        )
+
+    alle_spots = []
+    for spot in alle_trinkstellen:
+        alle_spots.append({"kategorie": "Wasser", **spot})
+    for spot in alle_essens_spots:
+        alle_spots.append({"kategorie": "Food", **spot})
+
+    return angezeigte_trinkstellen, angezeigte_essens_spots, alle_spots
+
+
+def bereite_alle_spots_vor(spot_auswahl, gpx_dateiname):
     trinkstellen = []
     essens_spots = []
 
@@ -71,21 +154,7 @@ def bereite_spots_vor(spot_auswahl, gpx_dateiname, maximale_anzahl):
     if spot_auswahl in ["Food", "Beides"]:
         essens_spots = lade_essens_spots(gpx_dateiname)
 
-    alle_spots = []
-    for spot in trinkstellen:
-        alle_spots.append({"kategorie": "Wasser", **spot})
-    for spot in essens_spots:
-        alle_spots.append({"kategorie": "Food", **spot})
-
-    angezeigte_spots = _begrenze_spots(alle_spots, maximale_anzahl)
-    angezeigte_trinkstellen = [
-        spot for spot in angezeigte_spots if spot.get("kategorie") == "Wasser"
-    ]
-    angezeigte_essens_spots = [
-        spot for spot in angezeigte_spots if spot.get("kategorie") == "Food"
-    ]
-
-    return angezeigte_trinkstellen, angezeigte_essens_spots, alle_spots
+    return trinkstellen, essens_spots
 
 
 def spots_zu_dataframe(trinkstellen, essens_spots):
@@ -113,7 +182,7 @@ def zeige_spot_tabelle(trinkstellen, essens_spots):
 
     spot_tabelle = spots_zu_dataframe(trinkstellen, essens_spots)
     if spot_tabelle.empty:
-        st.info("Keine Spots im ausgewaehlten Abschnitt.")
+        st.info("Keine passenden Spots gefunden.")
         return
 
     st.dataframe(spot_tabelle, use_container_width=True, hide_index=True)
