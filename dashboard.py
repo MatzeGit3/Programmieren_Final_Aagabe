@@ -1,7 +1,6 @@
 import streamlit as st
-import streamlit.components.v1 as components
 
-from daten_speichern import (
+from export import (
     erstelle_export_daten,
     export_als_html_text,
     export_als_json_text,
@@ -9,7 +8,7 @@ from daten_speichern import (
     speichere_html_export_datei,
 )
 from Eigenen_Spots import hole_eigene_spots, zeige_eigene_spots_formular
-from gpx_einlesen import lade_gpx_text
+from gpx_einlesen import lade_gpx_text, route_zuruecksetzen
 from Hoehenprofil import zeige_hoehenprofil
 from Karte_erstellen import erstelle_folium_karte
 from Routen_Stats import (
@@ -26,7 +25,12 @@ from Tabelle_mit_spots import (
 
 
 APP_TITEL = "GPX-Auswertung"
-ANSICHTEN = ["1. Route ansehen", "2. Spots ansehen", "3. Bericht exportieren"]
+ANSICHTEN = [
+    "1. Route ansehen",
+    "2. Spots ansehen",
+    "3. Bericht exportieren",
+    "4. Eigenen Spot erstellen",
+]
 SPOT_OPTIONEN = ["Wasser", "Food", "Wasser und Food", "Keine"]
 
 
@@ -47,9 +51,16 @@ def _erstelle_karten_html(df, routenname, trinkstellen, essens_spots, schlafpunk
     return karte._repr_html_()
 
 
-def zeige_sidebar():
+def zeige_home_auswahl(routenname):
     st.sidebar.title(APP_TITEL)
-    return st.sidebar.radio("Schritt auswaehlen", ANSICHTEN)
+
+    if st.sidebar.button("Andere Route waehlen", use_container_width=True):
+        route_zuruecksetzen()
+        st.rerun()
+
+    st.title("Home")
+    st.caption(f"Ausgewaehlte Route: {routenname}")
+    return st.selectbox("Was moechtest du tun?", ANSICHTEN)
 
 
 def zeige_kennzahlen(df, gesamt_distanz_km, gesamt_hoehenmeter):
@@ -99,7 +110,7 @@ def zeige_karte(
         essens_spots or [],
         uebernachtungen or [],
     )
-    components.html(karte_html, height=650)
+    st.iframe(karte_html, height=650)
     return karte_html
 
 
@@ -141,6 +152,12 @@ def zeige_alle_spots(df, routenname, gpx_dateiname):
         "Route mit allen Spots",
     )
     zeige_spot_tabelle(trinkstellen, essens_spots, [])
+
+
+def zeige_spot_erstellung(routenname, gesamt_distanz_km):
+    st.title("Eigenen Spot erstellen")
+    st.subheader(routenname)
+    zeige_eigene_spots_formular(gesamt_distanz_km)
 
 
 def zeige_export(
@@ -244,7 +261,7 @@ def zeige_export(
                 schlafpunkte,
                 "Route mit Spots",
             )
-            zeige_hoehenprofil(df)
+            zeige_hoehenprofil(df, trinkstellen, essens_spots, schlafpunkte)
 
         elif export_ansicht == "Ausgewaehlte Spots":
             zeige_spot_tabelle(trinkstellen, essens_spots, schlafpunkte)
@@ -318,12 +335,12 @@ def zeige_export(
 def starte_app():
     st.set_page_config(page_title=APP_TITEL, layout="wide")
 
-    ansicht = zeige_sidebar()
     gpx_text, routenname, gpx_dateiname = lade_gpx_text()
 
     if gpx_text is None:
         return
 
+    ansicht = zeige_home_auswahl(routenname)
     df, gesamt_distanz_km, gesamt_hoehenmeter = _berechne_route(gpx_text)
 
     if ansicht == "2. Spots ansehen":
@@ -336,5 +353,7 @@ def starte_app():
             gesamt_distanz_km,
             gesamt_hoehenmeter,
         )
+    elif ansicht == "4. Eigenen Spot erstellen":
+        zeige_spot_erstellung(routenname, gesamt_distanz_km)
     else:
         zeige_hauptansicht(df, routenname, gesamt_distanz_km, gesamt_hoehenmeter)
