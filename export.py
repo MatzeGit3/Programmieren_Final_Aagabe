@@ -88,7 +88,7 @@ def export_als_json_text(export_daten):
 
 def _spot_zeilen_html(spots):
     if not spots:
-        return '<tr><td colspan="4">Keine Spots ausgewaehlt.</td></tr>'
+        return '<tr><td colspan="4">Keine Spots ausgewählt.</td></tr>'
 
     zeilen = []
     for spot in spots:
@@ -109,7 +109,7 @@ def _spot_zeilen_html(spots):
 
 def _hoehenprofil_svg(hoehenprofil):
     if len(hoehenprofil) < 2:
-        return "<p>Kein Hoehenprofil verfuegbar.</p>"
+        return "<p>Kein Höhenprofil verfügbar.</p>"
 
     breite = 900
     hoehe = 280
@@ -143,7 +143,7 @@ def _hoehenprofil_svg(hoehenprofil):
     flaechenpunkte = f"{rand_links},{x_achse_y} {linienpunkte} {breite - rand_rechts},{x_achse_y}"
 
     return f"""
-    <svg viewBox="0 0 {breite} {hoehe}" width="100%" height="300" role="img" aria-label="Hoehenprofil">
+    <svg viewBox="0 0 {breite} {hoehe}" width="100%" height="300" role="img" aria-label="Höhenprofil">
       <rect x="0" y="0" width="{breite}" height="{hoehe}" rx="10" fill="#ffffff"/>
       <line x1="{rand_links}" y1="{x_achse_y}" x2="{breite - rand_rechts}" y2="{x_achse_y}" stroke="#9fb3c8"/>
       <line x1="{rand_links}" y1="{rand_oben}" x2="{rand_links}" y2="{x_achse_y}" stroke="#9fb3c8"/>
@@ -235,11 +235,11 @@ def export_als_html_text(export_daten):
 
   <section class="kennzahlen">
     <div class="wert">
-      <div class="label">Gesamtlaenge</div>
+      <div class="label">Gesamtlänge</div>
       <div class="zahl">{route["gesamt_distanz_km"]:.1f} km</div>
     </div>
     <div class="wert">
-      <div class="label">Hoehenmeter</div>
+      <div class="label">Höhenmeter</div>
       <div class="zahl">{route["gesamt_hoehenmeter"]:.0f} m</div>
     </div>
     <div class="wert">
@@ -247,7 +247,7 @@ def export_als_html_text(export_daten):
       <div class="zahl">W {abstaende["wasser"]} km / E {abstaende["essen"]} km / Schlaf {schlafpunkt_distanz:.1f} km</div>
     </div>
     <div class="wert">
-      <div class="label">Geschaetzte Fahrzeit</div>
+      <div class="label">Geschätzte Fahrzeit</div>
       <div class="zahl">{escape(fahrzeit["anzeige"])}</div>
       <div class="label">bei {fahrzeit["durchschnitt_kmh"]:.1f} km/h</div>
       <div class="label">{fahrzeit["schlafstunden_pro_tag"]:.1f} h Schlaf pro Tag</div>
@@ -260,7 +260,7 @@ def export_als_html_text(export_daten):
   </section>
 
   <section class="box">
-    <h2>Hoehenprofil</h2>
+    <h2>Höhenprofil</h2>
     {_hoehenprofil_svg(hoehenprofil)}
   </section>
 

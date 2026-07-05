@@ -32,7 +32,7 @@ ANSICHTEN = [
     "3. Bericht exportieren",
     "4. Eigenen Spot erstellen",
 ]
-SPOT_OPTIONEN = ["Wasser", "Food", "Wasser und Food", "Keine"]
+SPOT_OPTIONEN = ["Wasser", "Essen", "Wasser und Essen", "Keine"]
 
 
 @st.cache_data(show_spinner=False)
@@ -55,19 +55,19 @@ def _erstelle_karten_html(df, routenname, trinkstellen, essens_spots, schlafpunk
 def zeige_home_auswahl(routenname):
     st.sidebar.title(APP_TITEL)
 
-    if st.sidebar.button("Andere Route waehlen", use_container_width=True):
+    if st.sidebar.button("Andere Route wählen", use_container_width=True):
         route_zuruecksetzen()
         st.rerun()
 
-    st.title("Home")
-    st.caption(f"Ausgewaehlte Route: {routenname}")
-    return st.selectbox("Was moechtest du tun?", ANSICHTEN)
+    st.title("Tourenübersicht")
+    st.caption(f"Ausgewählte Route: {routenname}")
+    return st.selectbox("Was möchtest du tun?", ANSICHTEN)
 
 
 def zeige_kennzahlen(df, gesamt_distanz_km, gesamt_hoehenmeter):
     spalte1, spalte2, spalte3 = st.columns(3)
-    spalte1.metric("Gesamtlaenge", f"{gesamt_distanz_km:.1f} km")
-    spalte2.metric("Hoehenmeter", f"{gesamt_hoehenmeter:.0f} m")
+    spalte1.metric("Gesamtlänge", f"{gesamt_distanz_km:.1f} km")
+    spalte2.metric("Höhenmeter", f"{gesamt_hoehenmeter:.0f} m")
     spalte3.metric("GPS-Punkte", f"{len(df)}")
 
 
@@ -85,7 +85,7 @@ def zeige_fahrzeit_eingabe(gesamt_distanz_km, key):
         gesamt_distanz_km,
         durchschnitt_kmh,
     )
-    st.metric("Geschaetzte Fahrzeit", fahrzeit_text)
+    st.metric("Geschätzte Fahrzeit", fahrzeit_text)
 
     return durchschnitt_kmh, fahrzeit_stunden, fahrzeit_text
 
@@ -139,9 +139,9 @@ def zeige_alle_spots(df, routenname, gpx_dateiname):
     )
     eigene_trinkstellen, eigene_essens_spots, _ = hole_eigene_spots()
 
-    if spot_auswahl in ["Wasser", "Wasser und Food"]:
+    if spot_auswahl in ["Wasser", "Wasser und Essen"]:
         trinkstellen = trinkstellen + eigene_trinkstellen
-    if spot_auswahl in ["Food", "Wasser und Food"]:
+    if spot_auswahl in ["Essen", "Wasser und Essen"]:
         essens_spots = essens_spots + eigene_essens_spots
 
     zeige_karte(
@@ -180,7 +180,7 @@ def zeige_export(
 
     with export_tab:
         st.write("Lege fest, welche Wasser- und Essens-Spots in deinen Routenbericht aufgenommen werden.")
-        spot_auswahl = st.radio("Versorgungs-Spots fuer Bericht", SPOT_OPTIONEN, horizontal=True)
+        spot_auswahl = st.radio("Versorgungspunkte für Bericht", SPOT_OPTIONEN, horizontal=True)
 
         st.subheader("Fahrzeit und Schlafpunkte")
         durchschnitt_kmh, fahrzeit_stunden, fahrzeit_text = zeige_fahrzeit_eingabe(
@@ -193,19 +193,19 @@ def zeige_export(
             max_value=16.0,
             value=8.0,
             step=0.5,
-            help="Aus 24 Stunden minus Schlafzeit berechnet die App die moegliche Fahrzeit pro Tag.",
+            help="Aus 24 Stunden minus Schlafzeit berechnet die App die mögliche Fahrzeit pro Tag.",
         )
         fahrstunden_pro_tag, tagesdistanz_km = berechne_tagesdistanz(
             durchschnitt_kmh,
             schlafstunden,
         )
         st.metric(
-            "Etappenlaenge bis zum naechsten Schlafpunkt",
+            "Etappenlänge bis zum nächsten Schlafpunkt",
             f"{tagesdistanz_km:.1f} km",
             help=f"Berechnet mit {fahrstunden_pro_tag:.1f} Fahrstunden pro Tag.",
         )
 
-        st.subheader("Abstaende fuer Versorgung")
+        st.subheader("Abstände für Versorgung")
         spalte1, spalte2 = st.columns(2)
         wasser_abstand_km = spalte1.number_input(
             "Maximaler Abstand Wasser",
@@ -213,7 +213,7 @@ def zeige_export(
             max_value=500,
             value=50,
             step=1,
-            help="Die App sucht Wasser-Spots so aus, dass sie moeglichst in diesem Abstand entlang der Route liegen.",
+            help="Die App sucht Wasser-Spots so aus, dass sie möglichst in diesem Abstand entlang der Route liegen.",
         )
         essen_abstand_km = spalte2.number_input(
             "Maximaler Abstand Essen",
@@ -221,7 +221,7 @@ def zeige_export(
             max_value=500,
             value=100,
             step=1,
-            help="Die App sucht Essens-Spots so aus, dass sie moeglichst in diesem Abstand entlang der Route liegen.",
+            help="Die App sucht Essens-Spots so aus, dass sie möglichst in diesem Abstand entlang der Route liegen.",
         )
 
         trinkstellen, essens_spots, alle_spots = bereite_spots_vor(
@@ -231,24 +231,24 @@ def zeige_export(
             wasser_abstand_km,
             essen_abstand_km,
         )
-        if spot_auswahl in ["Wasser", "Wasser und Food"]:
+        if spot_auswahl in ["Wasser", "Wasser und Essen"]:
             trinkstellen = trinkstellen + eigene_trinkstellen
-        if spot_auswahl in ["Food", "Wasser und Food"]:
+        if spot_auswahl in ["Essen", "Wasser und Essen"]:
             essens_spots = essens_spots + eigene_essens_spots
         berechnete_schlaf_spots = berechne_schlaf_spots(df, tagesdistanz_km)
         schlafpunkte = berechnete_schlaf_spots + eigene_uebernachtungen
 
         st.info(
-            f"Der Bericht enthaelt {len(trinkstellen)} Wasser-Spots und "
+            f"Der Bericht enthält {len(trinkstellen)} Wasser-Spots und "
             f"{len(essens_spots)} Essens-Spots und "
-            f"{len(schlafpunkte)} Schlafpunkte aus {len(alle_spots)} verfuegbaren Versorgungs-Spots. "
+            f"{len(schlafpunkte)} Schlafpunkte aus {len(alle_spots)} verfügbaren Versorgungspunkten. "
             f"Davon sind {len(eigene_trinkstellen) + len(eigene_essens_spots) + len(eigene_uebernachtungen)} eigene Spots."
         )
         zeige_kennzahlen(df, gesamt_distanz_km, gesamt_hoehenmeter)
 
         export_ansicht = st.radio(
             "Export-Ansicht",
-            ["Vorschau", "Ausgewaehlte Spots", "Download"],
+            ["Vorschau", "Ausgewählte Spots", "Download"],
             horizontal=True,
         )
 
@@ -264,7 +264,7 @@ def zeige_export(
             )
             zeige_hoehenprofil(df, trinkstellen, essens_spots, schlafpunkte)
 
-        elif export_ansicht == "Ausgewaehlte Spots":
+        elif export_ansicht == "Ausgewählte Spots":
             zeige_spot_tabelle(trinkstellen, essens_spots, schlafpunkte)
 
         else:
@@ -305,7 +305,7 @@ def zeige_export(
                 html_text = export_als_html_text(export_daten)
                 json_text = export_als_json_text(export_daten)
 
-            st.write("Der HTML-Bericht ist die benutzerfreundliche Version zum Oeffnen im Browser.")
+            st.write("Der HTML-Bericht ist die benutzerfreundliche Version zum Öffnen im Browser.")
             spalte1, spalte2 = st.columns(2)
 
             spalte1.download_button(

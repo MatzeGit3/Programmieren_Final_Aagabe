@@ -6,7 +6,7 @@ import streamlit as st
 GPX_ORDNER = Path("GPX_Datain")
 ROUTE_STATE_KEY = "ausgewaehlte_route"
 QUELLE_VORHANDEN = "Vorhandene Route nehmen"
-QUELLE_EIGEN = "Eigene Route hinzufuegen"
+QUELLE_EIGEN = "Eigene Route hinzufügen"
 
 
 @st.cache_data(show_spinner=False)
@@ -37,7 +37,7 @@ def _lade_vorhandene_route():
         return
 
     ausgewaehlte_datei = st.selectbox(
-        "Vorhandene Route auswaehlen",
+        "Vorhandene Route auswählen",
         gpx_dateien,
         format_func=lambda pfad: pfad.stem,
     )
@@ -59,7 +59,7 @@ def _lade_eigene_route():
         st.info("Bitte lade eine GPX-Datei hoch.")
         return
 
-    if st.button("Route hinzufuegen", type="primary", use_container_width=True):
+    if st.button("Route hinzufügen", type="primary", use_container_width=True):
         _route_speichern(
             hochgeladene_datei.getvalue().decode("utf-8"),
             Path(hochgeladene_datei.name).stem,
@@ -71,10 +71,10 @@ def _lade_eigene_route():
 
 def zeige_startbildschirm():
     st.title("GPX-Auswertung")
-    st.subheader("Route auswaehlen")
+    st.subheader("Route auswählen")
 
     quelle = st.radio(
-        "Wie moechtest du starten?",
+        "Wie möchtest du starten?",
         [QUELLE_VORHANDEN, QUELLE_EIGEN],
         horizontal=True,
     )

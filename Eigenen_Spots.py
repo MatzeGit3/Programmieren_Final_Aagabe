@@ -30,12 +30,12 @@ def _erstelle_spot(kategorie, name, route_km, latitude, longitude, adresse, noti
 def zeige_eigene_spots_formular(gesamt_distanz_km):
     _initialisiere_eigene_spots()
 
-    st.subheader("Eigene Spots hinzufuegen")
+    st.subheader("Eigene Spots hinzufügen")
 
     with st.form("eigener_spot_formular", clear_on_submit=True):
         kategorie = st.radio(
             "Kategorie",
-            ["Wasser", "Food", "Schlafpunkt"],
+            ["Wasser", "Essen", "Schlafpunkt"],
             horizontal=True,
         )
         name = st.text_input("Name des Spots")
@@ -67,11 +67,11 @@ def zeige_eigene_spots_formular(gesamt_distanz_km):
 
         adresse = st.text_input("Adresse")
         notiz = st.text_area("Notiz")
-        gespeichert = st.form_submit_button("Spot hinzufuegen", use_container_width=True)
+        gespeichert = st.form_submit_button("Spot hinzufügen", use_container_width=True)
 
     if gespeichert:
         if not name.strip():
-            st.warning("Bitte gib einen Namen fuer den Spot ein.")
+            st.warning("Bitte gib einen Namen für den Spot ein.")
         else:
             spot = _erstelle_spot(
                 kategorie,
@@ -85,18 +85,18 @@ def zeige_eigene_spots_formular(gesamt_distanz_km):
 
             if kategorie == "Wasser":
                 st.session_state.eigene_trinkstellen.append(spot)
-            elif kategorie == "Food":
+            elif kategorie == "Essen":
                 st.session_state.eigene_essens_spots.append(spot)
             else:
                 st.session_state.eigene_uebernachtungen.append(spot)
 
-            st.success(f"{name} wurde hinzugefuegt.")
+            st.success(f"{name} wurde hinzugefügt.")
 
-    if st.button("Eigene Spots loeschen", use_container_width=True):
+    if st.button("Eigene Spots löschen", use_container_width=True):
         st.session_state.eigene_trinkstellen = []
         st.session_state.eigene_essens_spots = []
         st.session_state.eigene_uebernachtungen = []
-        st.info("Eigene Spots wurden geloescht.")
+        st.info("Eigene Spots wurden gelöscht.")
 
 
 def hole_eigene_spots():

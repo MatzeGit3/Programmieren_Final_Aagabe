@@ -6,7 +6,7 @@ import streamlit as st
 MAX_HOEHENPUNKTE = 1500
 SPOT_FARBEN = {
     "Wasser": "#2563eb",
-    "Food": "#f97316",
+    "Essen": "#f97316",
     "Schlafpunkt": "#7c3aed",
 }
 
@@ -36,7 +36,7 @@ def _spot_route_km(spot):
 def _spots_zu_dataframe(hoehenprofil, trinkstellen, essens_spots, schlafpunkte):
     spot_gruppen = [
         ("Wasser", trinkstellen or []),
-        ("Food", essens_spots or []),
+        ("Essen", essens_spots or []),
         ("Schlafpunkt", schlafpunkte or []),
     ]
     spot_zeilen = []
@@ -68,7 +68,7 @@ def _spots_zu_dataframe(hoehenprofil, trinkstellen, essens_spots, schlafpunkte):
 def _hoehenprofil_chart(hoehenprofil, spots):
     basis = alt.Chart(hoehenprofil).encode(
         x=alt.X("distanz_km:Q", title="Distanz (km)"),
-        y=alt.Y("hoehe_m:Q", title="Hoehe (m)", scale=alt.Scale(zero=False)),
+        y=alt.Y("hoehe_m:Q", title="Höhe (m)", scale=alt.Scale(zero=False)),
     )
     linie = basis.mark_line(color="#2563eb", strokeWidth=2.5)
 
@@ -77,7 +77,7 @@ def _hoehenprofil_chart(hoehenprofil, spots):
 
     spot_basis = alt.Chart(spots).encode(
         x=alt.X("distanz_km:Q", title="Distanz (km)"),
-        y=alt.Y("hoehe_m:Q", title="Hoehe (m)", scale=alt.Scale(zero=False)),
+        y=alt.Y("hoehe_m:Q", title="Höhe (m)", scale=alt.Scale(zero=False)),
         color=alt.Color(
             "kategorie:N",
             title="Spot",
@@ -90,7 +90,7 @@ def _hoehenprofil_chart(hoehenprofil, spots):
             alt.Tooltip("kategorie:N", title="Kategorie"),
             alt.Tooltip("name:N", title="Name"),
             alt.Tooltip("route_km:N", title="Route-km"),
-            alt.Tooltip("hoehe_m:Q", title="Hoehe", format=".0f"),
+            alt.Tooltip("hoehe_m:Q", title="Höhe", format=".0f"),
         ],
     )
     marker = spot_basis.mark_point(filled=True, size=95, stroke="#ffffff", strokeWidth=1)
@@ -106,11 +106,11 @@ def _hoehenprofil_chart(hoehenprofil, spots):
 
 
 def zeige_hoehenprofil(df, trinkstellen=None, essens_spots=None, schlafpunkte=None):
-    st.subheader("Hoehenprofil")
+    st.subheader("Höhenprofil")
     hoehenprofil = df[["distanz_km", "hoehe_m"]].dropna(subset=["hoehe_m"])
 
     if hoehenprofil.empty:
-        st.warning("Diese GPX-Datei enthaelt keine Hoehenangaben.")
+        st.warning("Diese GPX-Datei enthält keine Höhenangaben.")
     else:
         reduzierte_hoehen = _reduziere_hoehenprofil(hoehenprofil)
         spots = _spots_zu_dataframe(
