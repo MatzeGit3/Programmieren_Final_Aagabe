@@ -8,6 +8,8 @@ ERDRADIUS_KM = 6371.0
 
 
 def berechne_distanz_km(lat1, lon1, lat2, lon2):
+    """Berechnet die Entfernung zwischen zwei GPS-Punkten in Kilometern."""
+
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
     delta_lat = lat2 - lat1
     delta_lon = lon2 - lon1
@@ -19,6 +21,8 @@ def berechne_distanz_km(lat1, lon1, lat2, lon2):
 
 
 def gpx_zu_dataframe(gpx_text):
+    """Liest GPX-Text ein und gibt Routendaten, Distanz und Höhenmeter zurück."""
+
     gpx = gpxpy.parse(gpx_text)
     punkte = []
     gesamt_distanz_km = 0.0
@@ -55,6 +59,8 @@ def gpx_zu_dataframe(gpx_text):
 
 
 def berechne_fahrzeit(gesamt_distanz_km, durchschnitt_kmh):
+    """Berechnet aus Distanz und Geschwindigkeit eine geschätzte Fahrzeit."""
+
     if durchschnitt_kmh <= 0:
         return 0.0, "unbekannt"
 
@@ -70,11 +76,15 @@ def berechne_fahrzeit(gesamt_distanz_km, durchschnitt_kmh):
 
 
 def berechne_tagesdistanz(durchschnitt_kmh, schlafstunden):
+    """Berechnet, wie weit man mit der geplanten Schlafzeit pro Tag fahren kann."""
+
     fahrstunden = max(0.0, 24.0 - schlafstunden)
     return fahrstunden, durchschnitt_kmh * fahrstunden
 
 
 def berechne_schlaf_spots(df, tagesdistanz_km):
+    """Erstellt Schlafpunkte entlang der Route im Abstand der Tagesdistanz."""
+
     if df.empty or tagesdistanz_km <= 0:
         return []
 
@@ -110,5 +120,7 @@ def berechne_schlaf_spots(df, tagesdistanz_km):
 
 
 def filtere_route(df, kilometerbereich):
+    """Filtert die Route auf einen bestimmten Kilometerbereich."""
+
     start_km, ende_km = kilometerbereich
     return df[(df["distanz_km"] >= start_km) & (df["distanz_km"] <= ende_km)]

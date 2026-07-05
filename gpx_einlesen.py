@@ -25,6 +25,8 @@ def _route_speichern(gpx_text, routenname, gpx_dateiname, quelle):
 
 
 def route_zuruecksetzen():
+    """Entfernt die aktuell ausgewählte Route aus der Session."""
+
     st.session_state.pop(ROUTE_STATE_KEY, None)
     st.session_state.pop("bericht_vorbereitet", None)
 
@@ -70,6 +72,8 @@ def _lade_eigene_route():
 
 
 def zeige_startbildschirm():
+    """Zeigt die Startansicht zur Auswahl oder zum Hochladen einer GPX-Datei."""
+
     st.title("GPX-Auswertung")
     st.subheader("Route auswählen")
 
@@ -86,6 +90,8 @@ def zeige_startbildschirm():
 
 
 def lade_gpx_text():
+    """Gibt den GPX-Text und die Namen der ausgewählten Route zurück."""
+
     route = st.session_state.get(ROUTE_STATE_KEY)
 
     if route is None:

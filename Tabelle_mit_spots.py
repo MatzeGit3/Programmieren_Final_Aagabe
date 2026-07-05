@@ -117,6 +117,8 @@ def bereite_spots_vor(
     wasser_abstand_km,
     essen_abstand_km,
 ):
+    """Wählt passende Versorgungs-Spots nach Kategorie und Abstand aus."""
+
     alle_trinkstellen = []
     alle_essens_spots = []
     angezeigte_trinkstellen = []
@@ -152,6 +154,8 @@ def bereite_spots_vor(
 
 
 def bereite_alle_spots_vor(spot_auswahl, gpx_dateiname):
+    """Lädt alle Spots der gewählten Kategorien für die ausgewählte Route."""
+
     trinkstellen = []
     essens_spots = []
 
@@ -165,6 +169,8 @@ def bereite_alle_spots_vor(spot_auswahl, gpx_dateiname):
 
 
 def spots_zu_dataframe(trinkstellen, essens_spots, uebernachtungen=None):
+    """Wandelt die Spot-Listen in eine Tabelle für die Anzeige um."""
+
     zeilen = []
 
     for spot in trinkstellen:
@@ -188,6 +194,8 @@ def spots_zu_dataframe(trinkstellen, essens_spots, uebernachtungen=None):
 
 
 def zeige_spot_tabelle(trinkstellen, essens_spots, uebernachtungen=None):
+    """Zeigt die ausgewählten Spots als Streamlit-Tabelle."""
+
     st.subheader("Spot-Liste")
 
     spot_tabelle = spots_zu_dataframe(trinkstellen, essens_spots, uebernachtungen)

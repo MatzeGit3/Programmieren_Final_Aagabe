@@ -53,6 +53,8 @@ def _erstelle_karten_html(df, routenname, trinkstellen, essens_spots, schlafpunk
 
 
 def zeige_home_auswahl(routenname):
+    """Zeigt die Navigation und gibt die ausgewählte Ansicht zurück."""
+
     st.sidebar.title(APP_TITEL)
 
     if st.sidebar.button("Andere Route wählen", use_container_width=True):
@@ -65,6 +67,8 @@ def zeige_home_auswahl(routenname):
 
 
 def zeige_kennzahlen(df, gesamt_distanz_km, gesamt_hoehenmeter):
+    """Zeigt die wichtigsten Kennzahlen der Route als Streamlit-Metriken."""
+
     spalte1, spalte2, spalte3 = st.columns(3)
     spalte1.metric("Gesamtlänge", f"{gesamt_distanz_km:.1f} km")
     spalte2.metric("Höhenmeter", f"{gesamt_hoehenmeter:.0f} m")
@@ -72,6 +76,8 @@ def zeige_kennzahlen(df, gesamt_distanz_km, gesamt_hoehenmeter):
 
 
 def zeige_fahrzeit_eingabe(gesamt_distanz_km, key):
+    """Fragt die Durchschnittsgeschwindigkeit ab und zeigt die Fahrzeit an."""
+
     durchschnitt_kmh = st.number_input(
         "Durchschnittsgeschwindigkeit in km/h",
         min_value=1.0,
@@ -98,6 +104,8 @@ def zeige_karte(
     uebernachtungen=None,
     titel="Karte",
 ):
+    """Zeigt die Folium-Karte in Streamlit an und gibt den HTML-Code zurück."""
+
     st.subheader(titel)
 
     if df.empty:
@@ -116,6 +124,8 @@ def zeige_karte(
 
 
 def zeige_hauptansicht(route):
+    """Zeigt die Route mit Kennzahlen, Karte und Höhenprofil."""
+
     st.title("Route ansehen")
     st.subheader(route.routenname)
 
@@ -130,6 +140,8 @@ def zeige_hauptansicht(route):
 
 
 def zeige_alle_spots(df, routenname, gpx_dateiname):
+    """Zeigt alle verfügbaren Wasser- und Essenspunkte zu einer Route."""
+
     st.title("Spots ansehen")
     st.subheader(routenname)
     spot_auswahl = st.radio("Spots anzeigen", SPOT_OPTIONEN, horizontal=True)
@@ -156,6 +168,8 @@ def zeige_alle_spots(df, routenname, gpx_dateiname):
 
 
 def zeige_spot_erstellung(routenname, gesamt_distanz_km):
+    """Zeigt das Formular zum Erstellen eigener Spots."""
+
     st.title("Eigenen Spot erstellen")
     st.subheader(routenname)
     zeige_eigene_spots_formular(gesamt_distanz_km)
@@ -168,6 +182,8 @@ def zeige_export(
     gesamt_distanz_km,
     gesamt_hoehenmeter,
 ):
+    """Zeigt die Exportansicht zum Planen und Herunterladen des Berichts."""
+
     st.title("Export erstellen")
     st.subheader(routenname)
 
@@ -334,6 +350,8 @@ def zeige_export(
 
 
 def starte_app():
+    """Startet die Streamlit-App und leitet zur gewählten Ansicht weiter."""
+
     st.set_page_config(page_title=APP_TITEL, layout="wide")
 
     gpx_text, routenname, gpx_dateiname = lade_gpx_text()

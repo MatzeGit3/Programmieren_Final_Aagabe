@@ -106,6 +106,8 @@ def _hoehenprofil_chart(hoehenprofil, spots):
 
 
 def zeige_hoehenprofil(df, trinkstellen=None, essens_spots=None, schlafpunkte=None):
+    """Zeigt das Höhenprofil der Route und markiert optional die Spots."""
+
     st.subheader("Höhenprofil")
     hoehenprofil = df[["distanz_km", "hoehe_m"]].dropna(subset=["hoehe_m"])
 

@@ -28,6 +28,8 @@ def _erstelle_spot(kategorie, name, route_km, latitude, longitude, adresse, noti
 
 
 def zeige_eigene_spots_formular(gesamt_distanz_km):
+    """Zeigt ein Formular, mit dem eigene Spots zur Route ergänzt werden können."""
+
     _initialisiere_eigene_spots()
 
     st.subheader("Eigene Spots hinzufügen")
@@ -100,6 +102,8 @@ def zeige_eigene_spots_formular(gesamt_distanz_km):
 
 
 def hole_eigene_spots():
+    """Gibt die eigenen Spots aus der aktuellen Streamlit-Session zurück."""
+
     _initialisiere_eigene_spots()
     return (
         st.session_state.eigene_trinkstellen,

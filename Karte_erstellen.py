@@ -32,6 +32,8 @@ def erstelle_folium_karte(
     essens_spots=None,
     uebernachtungen=None,
 ):
+    """Erstellt eine Folium-Karte mit Route, Start, Ziel und optionalen Spots."""
+
     koordinaten = df[["lat", "lon"]].dropna().values.tolist()
     koordinaten_fuer_karte = _reduziere_koordinaten(koordinaten)
     mittelpunkt = [df["lat"].mean(), df["lon"].mean()]

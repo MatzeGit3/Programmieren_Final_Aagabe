@@ -46,6 +46,8 @@ def erstelle_export_daten(
     schlafstunden,
     fahrstunden_pro_tag,
 ):
+    """Sammelt alle Daten, die später als Bericht exportiert werden."""
+
     hoehenprofil_punkte = (
         df[["distanz_km", "hoehe_m"]]
         .dropna(subset=["hoehe_m"])
@@ -83,6 +85,8 @@ def erstelle_export_daten(
 
 
 def export_als_json_text(export_daten):
+    """Wandelt die Exportdaten in einen formatierten JSON-Text um."""
+
     return json.dumps(export_daten, indent=2, ensure_ascii=False)
 
 
@@ -160,6 +164,8 @@ def _hoehenprofil_svg(hoehenprofil):
 
 
 def export_als_html_text(export_daten):
+    """Erstellt aus den Exportdaten einen einfachen HTML-Bericht."""
+
     route = export_daten["route"]
     fahrzeit = export_daten["fahrzeit"]
     abstaende = export_daten["spot_abstaende_km"]
@@ -289,6 +295,8 @@ def export_als_html_text(export_daten):
 
 
 def speichere_export_datei(routenname, export_daten, export_ordner=EXPORT_ORDNER):
+    """Speichert den Bericht als JSON-Datei im Exportordner."""
+
     export_ordner.mkdir(parents=True, exist_ok=True)
     zeitstempel = datetime.now().strftime("%Y%m%d_%H%M%S")
     dateiname = f"{zeitstempel}_{_dateiname_bereinigen(routenname)}.json"
@@ -299,6 +307,8 @@ def speichere_export_datei(routenname, export_daten, export_ordner=EXPORT_ORDNER
 
 
 def speichere_html_export_datei(routenname, export_daten, export_ordner=EXPORT_ORDNER):
+    """Speichert den Bericht als HTML-Datei im Exportordner."""
+
     export_ordner.mkdir(parents=True, exist_ok=True)
     zeitstempel = datetime.now().strftime("%Y%m%d_%H%M%S")
     dateiname = f"{zeitstempel}_{_dateiname_bereinigen(routenname)}.html"
