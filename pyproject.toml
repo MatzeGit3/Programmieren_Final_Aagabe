@@ -1,11 +1,11 @@
 [project]
 name = "Programmieren_Final_Aagabe"
 version = "0.1.0"
-description = "Default template for PDM package"
+description = "Streamlit-App zur GPX-Tourenplanung und Routenauswertung"
 authors = [
     {name = "MatzeGit3", email = "wm4310@mci4me.at"},
 ]
-dependencies = ["pandas>=3.0.3", "streamlit>=1.58.0", "gpxpy>=1.6.2", "folium>=0.20.0"]
+dependencies = ["pandas>=3.0.3", "streamlit>=1.58.0", "gpxpy>=1.6.2", "folium>=0.20.0", "altair>=6.2.1"]
 requires-python = "==3.14.*"
 readme = "README.md"
 license = {text = "MIT"}
