@@ -1,5 +1,6 @@
 import streamlit as st
 
+from route import Route
 from export import (
     erstelle_export_daten,
     export_als_html_text,
@@ -114,18 +115,18 @@ def zeige_karte(
     return karte_html
 
 
-def zeige_hauptansicht(df, routenname, gesamt_distanz_km, gesamt_hoehenmeter):
+def zeige_hauptansicht(route):
     st.title("Route ansehen")
-    st.subheader(routenname)
+    st.subheader(route.routenname)
 
-    if df.empty:
+    if route.df.empty:
         st.warning("In dieser Route liegen keine GPS-Punkte.")
         return
 
-    zeige_kennzahlen(df, gesamt_distanz_km, gesamt_hoehenmeter)
-    zeige_fahrzeit_eingabe(gesamt_distanz_km, "hauptansicht_durchschnitt")
-    zeige_karte(df, routenname, [], [], [], "Route ohne Spots")
-    zeige_hoehenprofil(df)
+    zeige_kennzahlen(route.df, route.gesamt_distanz_km, route.gesamt_hoehenmeter)
+    zeige_fahrzeit_eingabe(route.gesamt_distanz_km, "hauptansicht_durchschnitt")
+    zeige_karte(route.df, route.routenname, [], [], [], "Route ohne Spots")
+    zeige_hoehenprofil(route.df)
 
 
 def zeige_alle_spots(df, routenname, gpx_dateiname):
@@ -342,18 +343,25 @@ def starte_app():
 
     ansicht = zeige_home_auswahl(routenname)
     df, gesamt_distanz_km, gesamt_hoehenmeter = _berechne_route(gpx_text)
+    route = Route(
+        df=df,
+        routenname=routenname,
+        gpx_dateiname=gpx_dateiname,
+        gesamt_distanz_km=gesamt_distanz_km,
+        gesamt_hoehenmeter=gesamt_hoehenmeter,
+    )
 
     if ansicht == "2. Spots ansehen":
-        zeige_alle_spots(df, routenname, gpx_dateiname)
+        zeige_alle_spots(route.df, route.routenname, route.gpx_dateiname)
     elif ansicht == "3. Bericht exportieren":
         zeige_export(
-            df,
-            routenname,
-            gpx_dateiname,
-            gesamt_distanz_km,
-            gesamt_hoehenmeter,
+            route.df,
+            route.routenname,
+            route.gpx_dateiname,
+            route.gesamt_distanz_km,
+            route.gesamt_hoehenmeter,
         )
     elif ansicht == "4. Eigenen Spot erstellen":
-        zeige_spot_erstellung(routenname, gesamt_distanz_km)
+        zeige_spot_erstellung(route.routenname, route.gesamt_distanz_km)
     else:
-        zeige_hauptansicht(df, routenname, gesamt_distanz_km, gesamt_hoehenmeter)
+        zeige_hauptansicht(route)
