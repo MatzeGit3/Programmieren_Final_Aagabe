@@ -139,15 +139,15 @@ def zeige_hauptansicht(route):
     zeige_hoehenprofil(route.df)
 
 
-def zeige_alle_spots(df, routenname, gpx_dateiname):
+def zeige_alle_spots(route):
     """Zeigt alle verfügbaren Wasser- und Essenspunkte zu einer Route."""
 
     st.title("Spots ansehen")
-    st.subheader(routenname)
+    st.subheader(route.routenname)
     spot_auswahl = st.radio("Spots anzeigen", SPOT_OPTIONEN, horizontal=True)
     trinkstellen, essens_spots = bereite_alle_spots_vor(
         spot_auswahl,
-        gpx_dateiname,
+        route.gpx_dateiname,
     )
     eigene_trinkstellen, eigene_essens_spots, _ = hole_eigene_spots()
 
@@ -157,8 +157,8 @@ def zeige_alle_spots(df, routenname, gpx_dateiname):
         essens_spots = essens_spots + eigene_essens_spots
 
     zeige_karte(
-        df,
-        routenname,
+        route.df,
+        route.routenname,
         trinkstellen,
         essens_spots,
         [],
@@ -167,30 +167,24 @@ def zeige_alle_spots(df, routenname, gpx_dateiname):
     zeige_spot_tabelle(trinkstellen, essens_spots, [])
 
 
-def zeige_spot_erstellung(routenname, gesamt_distanz_km):
+def zeige_spot_erstellung(route):
     """Zeigt das Formular zum Erstellen eigener Spots."""
 
     st.title("Eigenen Spot erstellen")
-    st.subheader(routenname)
-    zeige_eigene_spots_formular(gesamt_distanz_km)
+    st.subheader(route.routenname)
+    zeige_eigene_spots_formular(route.gesamt_distanz_km)
 
 
-def zeige_export(
-    df,
-    routenname,
-    gpx_dateiname,
-    gesamt_distanz_km,
-    gesamt_hoehenmeter,
-):
+def zeige_export(route):
     """Zeigt die Exportansicht zum Planen und Herunterladen des Berichts."""
 
     st.title("Export erstellen")
-    st.subheader(routenname)
+    st.subheader(route.routenname)
 
     export_tab, eigene_spots_tab = st.tabs(["Bericht planen", "Eigene Spots"])
 
     with eigene_spots_tab:
-        zeige_eigene_spots_formular(gesamt_distanz_km)
+        zeige_eigene_spots_formular(route.gesamt_distanz_km)
 
     eigene_trinkstellen, eigene_essens_spots, eigene_uebernachtungen = hole_eigene_spots()
 
@@ -200,7 +194,7 @@ def zeige_export(
 
         st.subheader("Fahrzeit und Schlafpunkte")
         durchschnitt_kmh, fahrzeit_stunden, fahrzeit_text = zeige_fahrzeit_eingabe(
-            gesamt_distanz_km,
+            route.gesamt_distanz_km,
             "export_durchschnitt",
         )
         schlafstunden = st.number_input(
@@ -242,8 +236,8 @@ def zeige_export(
 
         trinkstellen, essens_spots, alle_spots = bereite_spots_vor(
             spot_auswahl,
-            gpx_dateiname,
-            gesamt_distanz_km,
+            route.gpx_dateiname,
+            route.gesamt_distanz_km,
             wasser_abstand_km,
             essen_abstand_km,
         )
@@ -251,7 +245,7 @@ def zeige_export(
             trinkstellen = trinkstellen + eigene_trinkstellen
         if spot_auswahl in ["Essen", "Wasser und Essen"]:
             essens_spots = essens_spots + eigene_essens_spots
-        berechnete_schlaf_spots = berechne_schlaf_spots(df, tagesdistanz_km)
+        berechnete_schlaf_spots = berechne_schlaf_spots(route.df, tagesdistanz_km)
         schlafpunkte = berechnete_schlaf_spots + eigene_uebernachtungen
 
         st.info(
@@ -260,7 +254,11 @@ def zeige_export(
             f"{len(schlafpunkte)} Schlafpunkte aus {len(alle_spots)} verfügbaren Versorgungspunkten. "
             f"Davon sind {len(eigene_trinkstellen) + len(eigene_essens_spots) + len(eigene_uebernachtungen)} eigene Spots."
         )
-        zeige_kennzahlen(df, gesamt_distanz_km, gesamt_hoehenmeter)
+        zeige_kennzahlen(
+            route.df,
+            route.gesamt_distanz_km,
+            route.gesamt_hoehenmeter,
+        )
 
         export_ansicht = st.radio(
             "Export-Ansicht",
@@ -271,14 +269,14 @@ def zeige_export(
         karte_html = ""
         if export_ansicht == "Vorschau":
             karte_html = zeige_karte(
-                df,
-                routenname,
+                route.df,
+                route.routenname,
                 trinkstellen,
                 essens_spots,
                 schlafpunkte,
                 "Route mit Spots",
             )
-            zeige_hoehenprofil(df, trinkstellen, essens_spots, schlafpunkte)
+            zeige_hoehenprofil(route.df, trinkstellen, essens_spots, schlafpunkte)
 
         elif export_ansicht == "Ausgewählte Spots":
             zeige_spot_tabelle(trinkstellen, essens_spots, schlafpunkte)
@@ -293,18 +291,18 @@ def zeige_export(
 
             with st.spinner("Bericht wird vorbereitet..."):
                 karte_html = _erstelle_karten_html(
-                    df,
-                    routenname,
+                    route.df,
+                    route.routenname,
                     trinkstellen,
                     essens_spots,
                     schlafpunkte,
                 )
                 export_daten = erstelle_export_daten(
-                    routenname,
-                    gpx_dateiname,
-                    df,
-                    gesamt_distanz_km,
-                    gesamt_hoehenmeter,
+                    route.routenname,
+                    route.gpx_dateiname,
+                    route.df,
+                    route.gesamt_distanz_km,
+                    route.gesamt_hoehenmeter,
                     wasser_abstand_km,
                     essen_abstand_km,
                     tagesdistanz_km,
@@ -327,25 +325,25 @@ def zeige_export(
             spalte1.download_button(
                 "HTML-Bericht herunterladen",
                 data=html_text,
-                file_name=f"{routenname}_bericht.html",
+                file_name=f"{route.routenname}_bericht.html",
                 mime="text/html",
                 use_container_width=True,
             )
             spalte2.download_button(
                 "JSON-Daten herunterladen",
                 data=json_text,
-                file_name=f"{routenname}_daten.json",
+                file_name=f"{route.routenname}_daten.json",
                 mime="application/json",
                 use_container_width=True,
             )
 
             speicher_spalte1, speicher_spalte2 = st.columns(2)
             if speicher_spalte1.button("HTML-Bericht speichern", use_container_width=True):
-                ziel = speichere_html_export_datei(routenname, export_daten)
+                ziel = speichere_html_export_datei(route.routenname, export_daten)
                 st.success(f"Gespeichert: {ziel}")
 
             if speicher_spalte2.button("JSON-Daten speichern", use_container_width=True):
-                ziel = speichere_export_datei(routenname, export_daten)
+                ziel = speichere_export_datei(route.routenname, export_daten)
                 st.success(f"Gespeichert: {ziel}")
 
 
@@ -370,16 +368,10 @@ def starte_app():
     )
 
     if ansicht == "2. Spots ansehen":
-        zeige_alle_spots(route.df, route.routenname, route.gpx_dateiname)
+        zeige_alle_spots(route)
     elif ansicht == "3. Bericht exportieren":
-        zeige_export(
-            route.df,
-            route.routenname,
-            route.gpx_dateiname,
-            route.gesamt_distanz_km,
-            route.gesamt_hoehenmeter,
-        )
+        zeige_export(route)
     elif ansicht == "4. Eigenen Spot erstellen":
-        zeige_spot_erstellung(route.routenname, route.gesamt_distanz_km)
+        zeige_spot_erstellung(route)
     else:
         zeige_hauptansicht(route)
