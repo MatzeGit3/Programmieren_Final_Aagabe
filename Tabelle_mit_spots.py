@@ -1,4 +1,5 @@
 import json
+from math import asin, cos, radians, sin, sqrt
 from pathlib import Path
 
 import pandas as pd
@@ -7,6 +8,7 @@ import streamlit as st
 
 WATER_STOPS_DATEI = Path("data/water_stops/route_water_stops.json")
 FOOD_SPOTS_DATEI = Path("data/food_spots/route_food_spots.json")
+ERDRADIUS_KM = 6371
 ANZEIGE_SPALTEN = {
     "kategorie": "Kategorie",
     "name": "Name",
@@ -34,8 +36,27 @@ def lade_trinkstellen(gpx_dateiname=None, dateipfad=WATER_STOPS_DATEI):
         for route in daten.get("routes", []):
             if route.get("source_gpx_file") == gpx_dateiname:
                 return route.get("water_stops", [])
+        return []
 
-    return daten.get("stops", [])
+    return lade_alle_trinkstellen(dateipfad)
+
+
+@st.cache_data(show_spinner=False)
+def lade_alle_trinkstellen(dateipfad=WATER_STOPS_DATEI):
+    daten = _json_laden(dateipfad)
+    spots = list(daten.get("stops", []))
+
+    for route in daten.get("routes", []):
+        for spot in route.get("water_stops", []):
+            spots.append(
+                {
+                    **spot,
+                    "source_gpx_file": route.get("source_gpx_file"),
+                    "source_route_name": route.get("route_name"),
+                }
+            )
+
+    return spots
 
 
 @st.cache_data(show_spinner=False)
@@ -64,6 +85,54 @@ def _spot_distanz(spot):
         return route_km
 
     return None
+
+
+def _distanz_km(lat1, lon1, lat2, lon2):
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    lat_diff = lat2 - lat1
+    lon_diff = lon2 - lon1
+    a = sin(lat_diff / 2) ** 2 + cos(lat1) * cos(lat2) * sin(lon_diff / 2) ** 2
+    return ERDRADIUS_KM * 2 * asin(sqrt(a))
+
+
+def _distanz_zur_route(df, latitude, longitude):
+    naechster_punkt = None
+
+    for punkt in df[["lat", "lon", "distanz_km"]].dropna().itertuples(index=False):
+        distanz = _distanz_km(latitude, longitude, punkt.lat, punkt.lon)
+        if naechster_punkt is None or distanz < naechster_punkt[1]:
+            naechster_punkt = (punkt.distanz_km, distanz)
+
+    if naechster_punkt is None:
+        return None, None
+
+    return naechster_punkt
+
+
+def _spots_mit_routendistanz(spots, route_df):
+    spots_mit_distanz = []
+
+    for spot in spots:
+        latitude = spot.get("latitude")
+        longitude = spot.get("longitude")
+
+        if route_df is None or latitude is None or longitude is None:
+            spots_mit_distanz.append(spot)
+            continue
+
+        route_km, abstand_km = _distanz_zur_route(route_df, latitude, longitude)
+        if route_km is None:
+            continue
+
+        spots_mit_distanz.append(
+            {
+                **spot,
+                "route_distance_km": route_km,
+                "distance_from_route_km": abstand_km,
+            }
+        )
+
+    return spots_mit_distanz
 
 
 def _waehle_spots_nach_abstand(spots, abstand_km, gesamt_distanz_km):
@@ -116,6 +185,7 @@ def bereite_spots_vor(
     gesamt_distanz_km,
     wasser_abstand_km,
     essen_abstand_km,
+    route_df=None,
 ):
     """Wählt passende Versorgungs-Spots nach Kategorie und Abstand aus."""
 
@@ -126,6 +196,11 @@ def bereite_spots_vor(
 
     if spot_auswahl in ["Wasser", "Wasser und Essen"]:
         alle_trinkstellen = lade_trinkstellen(gpx_dateiname)
+        if not alle_trinkstellen:
+            alle_trinkstellen = _spots_mit_routendistanz(
+                lade_alle_trinkstellen(),
+                route_df,
+            )
         angezeigte_trinkstellen = _waehle_spots_nach_abstand(
             alle_trinkstellen,
             wasser_abstand_km,
@@ -134,26 +209,24 @@ def bereite_spots_vor(
 
     if spot_auswahl in ["Essen", "Wasser und Essen"]:
         alle_essens_spots = lade_essens_spots(gpx_dateiname)
+        if not alle_essens_spots:
+            alle_essens_spots = _spots_mit_routendistanz(
+                lade_essens_spots(),
+                route_df,
+            )
         angezeigte_essens_spots = _waehle_spots_nach_abstand(
             alle_essens_spots,
             essen_abstand_km,
             gesamt_distanz_km,
         )
 
-    alle_spots = []
-    for spot in alle_trinkstellen:
-        alle_spots.append({"kategorie": "Wasser", **spot})
-    for spot in alle_essens_spots:
-        alle_spots.append({"kategorie": "Essen", **spot})
-
     return (
         angezeigte_trinkstellen,
         angezeigte_essens_spots,
-        alle_spots,
     )
 
 
-def bereite_alle_spots_vor(spot_auswahl, gpx_dateiname):
+def bereite_alle_spots_vor(spot_auswahl, gpx_dateiname, route_df=None):
     """Lädt alle Spots der gewählten Kategorien für die ausgewählte Route."""
 
     trinkstellen = []
@@ -161,9 +234,13 @@ def bereite_alle_spots_vor(spot_auswahl, gpx_dateiname):
 
     if spot_auswahl in ["Wasser", "Wasser und Essen"]:
         trinkstellen = lade_trinkstellen(gpx_dateiname)
+        if not trinkstellen:
+            trinkstellen = _spots_mit_routendistanz(lade_alle_trinkstellen(), route_df)
 
     if spot_auswahl in ["Essen", "Wasser und Essen"]:
         essens_spots = lade_essens_spots(gpx_dateiname)
+        if not essens_spots:
+            essens_spots = _spots_mit_routendistanz(lade_essens_spots(), route_df)
 
     return trinkstellen, essens_spots
 
@@ -182,10 +259,8 @@ def spots_zu_dataframe(trinkstellen, essens_spots, uebernachtungen=None):
     for spot in uebernachtungen or []:
         if spot.get("is_sleep_accommodation"):
             kategorie = "Unterkunft"
-        elif spot.get("is_calculated_sleep_stop"):
-            kategorie = "Schlafbereich"
         else:
-            kategorie = "Schlafpunkt"
+            kategorie = "Eigener Schlafpunkt"
 
         zeilen.append({"kategorie": kategorie, **spot})
 

@@ -1,3 +1,26 @@
+def _google_maps_url(spot):
+    latitude = spot.get("latitude")
+    longitude = spot.get("longitude")
+
+    if latitude is None or longitude is None:
+        return None
+
+    return f"https://www.google.com/maps/search/?api=1&query={latitude},{longitude}"
+
+
+def _maps_url(spot):
+    return spot.get("google_maps_url") or _google_maps_url(spot) or spot.get("osm_url")
+
+
+def _maps_link(spot):
+    maps_url = _maps_url(spot)
+
+    if not maps_url:
+        return ""
+
+    return f'<p><a href="{maps_url}" target="_blank">In Google Maps öffnen</a></p>'
+
+
 def start_popup(routenname):
     return f"Start: {routenname}"
 
@@ -13,17 +36,12 @@ def trinkstellen_popup(stop):
     route_km = stop.get("route_distance_km")
     entfernung = stop.get("distance_from_route_km")
     bewertung = stop.get("google_rating")
-    maps_url = stop.get("google_maps_url") or stop.get("osm_url")
 
     route_text = f"{route_km:.1f} km" if isinstance(route_km, (int, float)) else "unbekannt"
     entfernung_text = (
         f"{entfernung:.2f} km" if isinstance(entfernung, (int, float)) else "unbekannt"
     )
     bewertung_text = f"{bewertung}/5" if isinstance(bewertung, (int, float)) else "keine"
-    maps_link = ""
-
-    if maps_url:
-        maps_link = f'<p><a href="{maps_url}" target="_blank">Karte öffnen</a></p>'
 
     return f"""
     <strong>{name}</strong>
@@ -32,7 +50,7 @@ def trinkstellen_popup(stop):
     <p><strong>Bei Route-km:</strong> {route_text}</p>
     <p><strong>Entfernung zur Route:</strong> {entfernung_text}</p>
     <p><strong>Bewertung:</strong> {bewertung_text}</p>
-    {maps_link}
+    {_maps_link(stop)}
     """
 
 
@@ -44,16 +62,11 @@ def essensspot_popup(spot):
     route_km = spot.get("route_distance_km")
     entfernung = spot.get("distance_from_route_km")
     oeffnungszeiten = spot.get("opening_hours_note") or "nicht angegeben"
-    maps_url = spot.get("osm_url")
 
     route_text = f"{route_km:.1f} km" if isinstance(route_km, (int, float)) else "unbekannt"
     entfernung_text = (
         f"{entfernung:.2f} km" if isinstance(entfernung, (int, float)) else "unbekannt"
     )
-    maps_link = ""
-
-    if maps_url:
-        maps_link = f'<p><a href="{maps_url}" target="_blank">Karte öffnen</a></p>'
 
     return f"""
     <strong>{name}</strong>
@@ -63,7 +76,7 @@ def essensspot_popup(spot):
     <p><strong>Bei Route-km:</strong> {route_text}</p>
     <p><strong>Entfernung zur Route:</strong> {entfernung_text}</p>
     <p><strong>Öffnungszeiten:</strong> {oeffnungszeiten}</p>
-    {maps_link}
+    {_maps_link(spot)}
     """
 
 
@@ -73,17 +86,12 @@ def uebernachtung_popup(spot):
     route_km = spot.get("route_distance_km")
     entfernung = spot.get("distance_from_route_km")
     notiz = spot.get("note") or "keine"
-    maps_url = spot.get("osm_url")
 
     route_text = f"{route_km:.1f} km" if isinstance(route_km, (int, float)) else "unbekannt"
     entfernung_text = (
         f"{entfernung:.2f} km" if isinstance(entfernung, (int, float)) else "unbekannt"
     )
-    typ = "Unterkunft" if spot.get("is_sleep_accommodation") else "Schlafbereich"
-    maps_link = ""
-
-    if maps_url:
-        maps_link = f'<p><a href="{maps_url}" target="_blank">Karte öffnen</a></p>'
+    typ = "Unterkunft" if spot.get("is_sleep_accommodation") else "Eigener Schlafpunkt"
 
     return f"""
     <strong>{name}</strong>
@@ -92,5 +100,5 @@ def uebernachtung_popup(spot):
     <p><strong>Bei Route-km:</strong> {route_text}</p>
     <p><strong>Entfernung zur Route:</strong> {entfernung_text}</p>
     <p><strong>Notiz:</strong> {notiz}</p>
-    {maps_link}
+    {_maps_link(spot)}
     """

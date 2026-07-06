@@ -7,9 +7,8 @@ MAX_HOEHENPUNKTE = 1500
 SPOT_FARBEN = {
     "Wasser": "#2563eb",
     "Essen": "#f97316",
-    "Schlafbereich": "#7c3aed",
     "Unterkunft": "#16a34a",
-    "Schlafpunkt": "#9333ea",
+    "Eigener Schlafpunkt": "#9333ea",
 }
 
 
@@ -47,10 +46,8 @@ def _spots_zu_dataframe(hoehenprofil, trinkstellen, essens_spots, schlafpunkte):
     for spot in schlafpunkte or []:
         if spot.get("is_sleep_accommodation"):
             spot_gruppen.append(("Unterkunft", [spot]))
-        elif spot.get("is_calculated_sleep_stop"):
-            spot_gruppen.append(("Schlafbereich", [spot]))
         else:
-            spot_gruppen.append(("Schlafpunkt", [spot]))
+            spot_gruppen.append(("Eigener Schlafpunkt", [spot]))
 
     for kategorie, spots in spot_gruppen:
         for spot in spots:

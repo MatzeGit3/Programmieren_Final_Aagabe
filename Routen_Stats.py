@@ -5,7 +5,6 @@ import pandas as pd
 
 
 ERDRADIUS_KM = 6371.0
-MIN_RESTDISTANZ_FUER_SCHLAFPUNKT_KM = 15.0
 
 
 def berechne_distanz_km(lat1, lon1, lat2, lon2):
@@ -81,50 +80,3 @@ def berechne_tagesdistanz(durchschnitt_kmh, fahrstunden_pro_tag):
 
     fahrstunden = max(0.0, fahrstunden_pro_tag)
     return fahrstunden, durchschnitt_kmh * fahrstunden
-
-
-def berechne_schlaf_spots(df, tagesdistanz_km):
-    """Erstellt Schlafpunkte entlang der Route im Abstand der Tagesdistanz."""
-
-    if df.empty or tagesdistanz_km <= 0:
-        return []
-
-    gesamt_distanz_km = df["distanz_km"].max()
-    schlaf_spots = []
-    ziel_km = tagesdistanz_km
-    nummer = 1
-
-    while ziel_km < gesamt_distanz_km:
-        if gesamt_distanz_km - ziel_km < MIN_RESTDISTANZ_FUER_SCHLAFPUNKT_KM:
-            break
-
-        naechster_punkt_index = (df["distanz_km"] - ziel_km).abs().idxmin()
-        naechster_punkt = df.loc[naechster_punkt_index]
-        route_km = float(naechster_punkt["distanz_km"])
-
-        schlaf_spots.append(
-            {
-                "id": f"schlafpunkt_{nummer}",
-                "name": f"Schlafpunkt {nummer}",
-                "type": "geplanter Schlafpunkt",
-                "address": "Entlang der Route",
-                "route_distance_km": route_km,
-                "distance_from_route_km": 0.0,
-                "latitude": float(naechster_punkt["lat"]),
-                "longitude": float(naechster_punkt["lon"]),
-                "note": "Automatisch aus Fahrstunden und Durchschnittsgeschwindigkeit berechnet.",
-                "is_calculated_sleep_stop": True,
-            }
-        )
-
-        nummer += 1
-        ziel_km += tagesdistanz_km
-
-    return schlaf_spots
-
-
-def filtere_route(df, kilometerbereich):
-    """Filtert die Route auf einen bestimmten Kilometerbereich."""
-
-    start_km, ende_km = kilometerbereich
-    return df[(df["distanz_km"] >= start_km) & (df["distanz_km"] <= ende_km)]

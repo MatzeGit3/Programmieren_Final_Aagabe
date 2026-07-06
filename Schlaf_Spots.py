@@ -1,11 +1,14 @@
 import json
+from math import asin, cos, radians, sin, sqrt
 from pathlib import Path
 
 import streamlit as st
 
 
 SLEEP_SPOTS_DATEI = Path("data/sleep_spots/route_sleep_spots.json")
-MAX_UNTERKUENFTE_PRO_SCHLAFPUNKT = 2
+MAX_UNTERKUENFTE_PRO_ETAPPE = 1
+MIN_RESTDISTANZ_FUER_UNTERKUNFT_KM = 15
+ERDRADIUS_KM = 6371
 
 
 @st.cache_data(show_spinner=False)
@@ -26,9 +29,38 @@ def lade_schlaf_spots(gpx_dateiname, dateipfad=SLEEP_SPOTS_DATEI):
 
     for route in daten.get("routes", []):
         if route.get("source_gpx_file") == gpx_dateiname:
-            return route.get("sleep_spots", [])
+            return [
+                {
+                    **spot,
+                    "type": spot.get("type", "Unterkunft"),
+                    "is_sleep_accommodation": True,
+                }
+                for spot in route.get("sleep_spots", [])
+            ]
 
     return []
+
+
+@st.cache_data(show_spinner=False)
+def lade_alle_schlaf_spots(dateipfad=SLEEP_SPOTS_DATEI):
+    """Laedt alle bekannten Unterkuenfte aus der Sleep-Spots-Datei."""
+
+    daten = _json_laden(dateipfad)
+    alle_spots = []
+
+    for route in daten.get("routes", []):
+        for spot in route.get("sleep_spots", []):
+            alle_spots.append(
+                {
+                    **spot,
+                    "type": spot.get("type", "Unterkunft"),
+                    "is_sleep_accommodation": True,
+                    "source_gpx_file": route.get("source_gpx_file"),
+                    "source_route_name": route.get("route_name"),
+                }
+            )
+
+    return alle_spots
 
 
 def _route_distanz(spot):
@@ -40,51 +72,142 @@ def _route_distanz(spot):
     return None
 
 
-def finde_unterkuenfte_fuer_schlafpunkte(
-    schlafpunkte,
-    gpx_dateiname,
-    max_abstand_km,
-):
-    """Sucht passende Unterkuenfte in der Naehe der berechneten Schlafpunkte."""
+def _spot_id(spot):
+    if spot.get("id"):
+        return spot["id"]
 
-    alle_unterkuenfte = lade_schlaf_spots(gpx_dateiname)
-    unterkuenfte_mit_distanz = [
-        spot for spot in alle_unterkuenfte if _route_distanz(spot) is not None
-    ]
+    if spot.get("osm_type") and spot.get("osm_id"):
+        return f"{spot['osm_type']}-{spot['osm_id']}"
+
+    return f"{spot.get('name')}-{spot.get('latitude')}-{spot.get('longitude')}"
+
+
+def _distanz_km(lat1, lon1, lat2, lon2):
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    lat_diff = lat2 - lat1
+    lon_diff = lon2 - lon1
+    a = sin(lat_diff / 2) ** 2 + cos(lat1) * cos(lat2) * sin(lon_diff / 2) ** 2
+    return ERDRADIUS_KM * 2 * asin(sqrt(a))
+
+
+def _distanz_zur_route(df, latitude, longitude):
+    naechster_punkt = None
+
+    for punkt in df[["lat", "lon", "distanz_km"]].dropna().itertuples(index=False):
+        distanz = _distanz_km(latitude, longitude, punkt.lat, punkt.lon)
+        if naechster_punkt is None or distanz < naechster_punkt[1]:
+            naechster_punkt = (punkt.distanz_km, distanz)
+
+    if naechster_punkt is None:
+        return None, None
+
+    return naechster_punkt
+
+
+def _spots_mit_routendistanz(route, spots, distanz_neu_berechnen):
+    spots_mit_distanz = []
+
+    for spot in spots:
+        latitude = spot.get("latitude")
+        longitude = spot.get("longitude")
+
+        if distanz_neu_berechnen and latitude is not None and longitude is not None:
+            route_km, abstand_km = _distanz_zur_route(route.df, latitude, longitude)
+        else:
+            route_km = _route_distanz(spot)
+            abstand_km = spot.get("distance_from_route_km")
+
+        if route_km is None:
+            continue
+
+        spots_mit_distanz.append(
+            {
+                **spot,
+                "type": spot.get("type", "Unterkunft"),
+                "route_distance_km": route_km,
+                "distance_from_route_km": abstand_km,
+                "is_sleep_accommodation": True,
+            }
+        )
+
+    return spots_mit_distanz
+
+
+def _etappen_ziele(gesamt_distanz_km, tagesdistanz_km):
+    ziele = []
+    naechstes_ziel = tagesdistanz_km
+
+    while naechstes_ziel < gesamt_distanz_km - MIN_RESTDISTANZ_FUER_UNTERKUNFT_KM:
+        ziele.append(naechstes_ziel)
+        naechstes_ziel += tagesdistanz_km
+
+    return ziele
+
+
+def bereite_unterkuenfte_vor(route, tagesdistanz_km, max_abstand_km):
+    """Waehlt passende Unterkuenfte fuer die Tagesetappen der Route aus."""
+
+    routen_spots = lade_schlaf_spots(route.gpx_dateiname)
+    distanz_neu_berechnen = not bool(routen_spots)
+    alle_unterkuenfte = routen_spots or lade_alle_schlaf_spots()
+    unterkuenfte_mit_distanz = _spots_mit_routendistanz(
+        route,
+        alle_unterkuenfte,
+        distanz_neu_berechnen,
+    )
+    etappen_ziele = _etappen_ziele(route.gesamt_distanz_km, tagesdistanz_km)
     ausgewaehlte_unterkuenfte = []
     ausgewaehlte_ids = set()
 
-    for schlafpunkt in schlafpunkte:
-        schlafpunkt_km = _route_distanz(schlafpunkt)
-        if schlafpunkt_km is None:
-            continue
-
-        passende_unterkuenfte = [
-            unterkunft
-            for unterkunft in unterkuenfte_mit_distanz
-            if abs(_route_distanz(unterkunft) - schlafpunkt_km) <= max_abstand_km
-        ]
+    for ziel_km in etappen_ziele:
         passende_unterkuenfte = sorted(
-            passende_unterkuenfte,
-            key=lambda unterkunft: abs(_route_distanz(unterkunft) - schlafpunkt_km),
+            unterkuenfte_mit_distanz,
+            key=lambda unterkunft: abs(_route_distanz(unterkunft) - ziel_km),
         )
+        nahe_unterkuenfte = [
+            unterkunft
+            for unterkunft in passende_unterkuenfte
+            if abs(_route_distanz(unterkunft) - ziel_km) <= max_abstand_km
+        ]
+        kandidaten = nahe_unterkuenfte or passende_unterkuenfte
 
-        for unterkunft in passende_unterkuenfte[:MAX_UNTERKUENFTE_PRO_SCHLAFPUNKT]:
-            unterkunft_id = unterkunft.get("id") or unterkunft.get("osm_id")
+        for unterkunft in kandidaten:
+            unterkunft_id = _spot_id(unterkunft)
             if unterkunft_id in ausgewaehlte_ids:
                 continue
 
             ausgewaehlte_unterkuenfte.append(
                 {
                     **unterkunft,
-                    "type": unterkunft.get("type", "Unterkunft"),
-                    "is_sleep_accommodation": True,
-                    "matched_sleep_point_km": schlafpunkt_km,
-                    "distance_from_sleep_point_km": abs(
-                        _route_distanz(unterkunft) - schlafpunkt_km
-                    ),
+                    "matched_target_km": ziel_km,
+                    "distance_from_target_km": abs(_route_distanz(unterkunft) - ziel_km),
                 }
             )
             ausgewaehlte_ids.add(unterkunft_id)
 
+            if (
+                len(
+                    [
+                        spot
+                        for spot in ausgewaehlte_unterkuenfte
+                        if spot.get("matched_target_km") == ziel_km
+                    ]
+                )
+                >= MAX_UNTERKUENFTE_PRO_ETAPPE
+            ):
+                break
+
     return sorted(ausgewaehlte_unterkuenfte, key=_route_distanz)
+
+
+def bereite_alle_unterkuenfte_vor(route):
+    """Bereitet alle passenden Unterkuenfte fuer die Anzeige auf der Karte vor."""
+
+    routen_spots = lade_schlaf_spots(route.gpx_dateiname)
+    distanz_neu_berechnen = not bool(routen_spots)
+    alle_unterkuenfte = routen_spots or lade_alle_schlaf_spots()
+
+    return sorted(
+        _spots_mit_routendistanz(route, alle_unterkuenfte, distanz_neu_berechnen),
+        key=_route_distanz,
+    )
