@@ -73,17 +73,24 @@ def uebernachtung_popup(spot):
     route_km = spot.get("route_distance_km")
     entfernung = spot.get("distance_from_route_km")
     notiz = spot.get("note") or "keine"
+    maps_url = spot.get("osm_url")
 
     route_text = f"{route_km:.1f} km" if isinstance(route_km, (int, float)) else "unbekannt"
     entfernung_text = (
         f"{entfernung:.2f} km" if isinstance(entfernung, (int, float)) else "unbekannt"
     )
+    typ = "Unterkunft" if spot.get("is_sleep_accommodation") else "Schlafbereich"
+    maps_link = ""
+
+    if maps_url:
+        maps_link = f'<p><a href="{maps_url}" target="_blank">Karte öffnen</a></p>'
 
     return f"""
     <strong>{name}</strong>
-    <p>Schlafpunkt</p>
+    <p>{typ}</p>
     <p>{adresse}</p>
     <p><strong>Bei Route-km:</strong> {route_text}</p>
     <p><strong>Entfernung zur Route:</strong> {entfernung_text}</p>
     <p><strong>Notiz:</strong> {notiz}</p>
+    {maps_link}
     """

@@ -18,6 +18,7 @@ from Routen_Stats import (
     berechne_tagesdistanz,
     gpx_zu_dataframe,
 )
+from Schlaf_Spots import finde_unterkuenfte_fuer_schlafpunkte, lade_schlaf_spots
 from Tabelle_mit_spots import (
     bereite_alle_spots_vor,
     bereite_spots_vor,
@@ -33,6 +34,7 @@ ANSICHTEN = [
     "4. Eigenen Spot erstellen",
 ]
 SPOT_OPTIONEN = ["Wasser", "Essen", "Wasser und Essen", "Keine"]
+MAX_UNTERKUNFT_ABSTAND_KM = 35
 
 
 @st.cache_data(show_spinner=False)
@@ -145,10 +147,12 @@ def zeige_alle_spots(route):
     st.title("Spots ansehen")
     st.subheader(route.routenname)
     spot_auswahl = st.radio("Spots anzeigen", SPOT_OPTIONEN, horizontal=True)
+    schlaf_spots_anzeigen = st.checkbox("Übernachtungen anzeigen")
     trinkstellen, essens_spots = bereite_alle_spots_vor(
         spot_auswahl,
         route.gpx_dateiname,
     )
+    schlaf_spots = lade_schlaf_spots(route.gpx_dateiname) if schlaf_spots_anzeigen else []
     eigene_trinkstellen, eigene_essens_spots, _ = hole_eigene_spots()
 
     if spot_auswahl in ["Wasser", "Wasser und Essen"]:
@@ -161,10 +165,10 @@ def zeige_alle_spots(route):
         route.routenname,
         trinkstellen,
         essens_spots,
-        [],
+        schlaf_spots,
         "Route mit allen Spots",
     )
-    zeige_spot_tabelle(trinkstellen, essens_spots, [])
+    zeige_spot_tabelle(trinkstellen, essens_spots, schlaf_spots)
 
 
 def zeige_spot_erstellung(route):
@@ -192,25 +196,25 @@ def zeige_export(route):
         st.write("Lege fest, welche Wasser- und Essens-Spots in deinen Routenbericht aufgenommen werden.")
         spot_auswahl = st.radio("Versorgungspunkte für Bericht", SPOT_OPTIONEN, horizontal=True)
 
-        st.subheader("Fahrzeit und Schlafpunkte")
+        st.subheader("Fahrzeit und Übernachtungen")
         durchschnitt_kmh, fahrzeit_stunden, fahrzeit_text = zeige_fahrzeit_eingabe(
             route.gesamt_distanz_km,
             "export_durchschnitt",
         )
-        schlafstunden = st.number_input(
-            "Wie viele Stunden willst du pro Tag schlafen?",
+        fahrstunden_pro_tag = st.number_input(
+            "Wie viele Stunden möchtest du pro Tag fahren?",
             min_value=1.0,
             max_value=16.0,
-            value=8.0,
+            value=6.0,
             step=0.5,
-            help="Aus 24 Stunden minus Schlafzeit berechnet die App die mögliche Fahrzeit pro Tag.",
+            help="Daraus berechnet die App, nach wie vielen Kilometern du ungefähr eine Unterkunft brauchst.",
         )
         fahrstunden_pro_tag, tagesdistanz_km = berechne_tagesdistanz(
             durchschnitt_kmh,
-            schlafstunden,
+            fahrstunden_pro_tag,
         )
         st.metric(
-            "Etappenlänge bis zum nächsten Schlafpunkt",
+            "Etappenlänge bis zur nächsten Übernachtung",
             f"{tagesdistanz_km:.1f} km",
             help=f"Berechnet mit {fahrstunden_pro_tag:.1f} Fahrstunden pro Tag.",
         )
@@ -246,12 +250,22 @@ def zeige_export(route):
         if spot_auswahl in ["Essen", "Wasser und Essen"]:
             essens_spots = essens_spots + eigene_essens_spots
         berechnete_schlaf_spots = berechne_schlaf_spots(route.df, tagesdistanz_km)
-        schlafpunkte = berechnete_schlaf_spots + eigene_uebernachtungen
+        vorgeschlagene_unterkuenfte = finde_unterkuenfte_fuer_schlafpunkte(
+            berechnete_schlaf_spots,
+            route.gpx_dateiname,
+            MAX_UNTERKUNFT_ABSTAND_KM,
+        )
+        schlafpunkte = (
+            berechnete_schlaf_spots
+            + vorgeschlagene_unterkuenfte
+            + eigene_uebernachtungen
+        )
 
         st.info(
             f"Der Bericht enthält {len(trinkstellen)} Wasser-Spots und "
             f"{len(essens_spots)} Essens-Spots und "
-            f"{len(schlafpunkte)} Schlafpunkte aus {len(alle_spots)} verfügbaren Versorgungspunkten. "
+            f"{len(berechnete_schlaf_spots)} berechnete Schlafbereiche mit "
+            f"{len(vorgeschlagene_unterkuenfte)} vorgeschlagenen Unterkünften. "
             f"Davon sind {len(eigene_trinkstellen) + len(eigene_essens_spots) + len(eigene_uebernachtungen)} eigene Spots."
         )
         zeige_kennzahlen(
@@ -313,7 +327,7 @@ def zeige_export(route):
                     durchschnitt_kmh,
                     fahrzeit_stunden,
                     fahrzeit_text,
-                    schlafstunden,
+                    24.0 - fahrstunden_pro_tag,
                     fahrstunden_pro_tag,
                 )
                 html_text = export_als_html_text(export_daten)

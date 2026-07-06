@@ -180,7 +180,14 @@ def spots_zu_dataframe(trinkstellen, essens_spots, uebernachtungen=None):
         zeilen.append({"kategorie": "Essen", **spot})
 
     for spot in uebernachtungen or []:
-        zeilen.append({"kategorie": "Schlafpunkt", **spot})
+        if spot.get("is_sleep_accommodation"):
+            kategorie = "Unterkunft"
+        elif spot.get("is_calculated_sleep_stop"):
+            kategorie = "Schlafbereich"
+        else:
+            kategorie = "Schlafpunkt"
+
+        zeilen.append({"kategorie": kategorie, **spot})
 
     if not zeilen:
         return pd.DataFrame(columns=ANZEIGE_SPALTEN.keys())

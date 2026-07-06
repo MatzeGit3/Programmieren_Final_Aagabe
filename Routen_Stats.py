@@ -5,6 +5,7 @@ import pandas as pd
 
 
 ERDRADIUS_KM = 6371.0
+MIN_RESTDISTANZ_FUER_SCHLAFPUNKT_KM = 15.0
 
 
 def berechne_distanz_km(lat1, lon1, lat2, lon2):
@@ -75,10 +76,10 @@ def berechne_fahrzeit(gesamt_distanz_km, durchschnitt_kmh):
     return stunden, f"{ganze_stunden} h {minuten} min"
 
 
-def berechne_tagesdistanz(durchschnitt_kmh, schlafstunden):
-    """Berechnet, wie weit man mit der geplanten Schlafzeit pro Tag fahren kann."""
+def berechne_tagesdistanz(durchschnitt_kmh, fahrstunden_pro_tag):
+    """Berechnet, wie weit man mit den geplanten Fahrstunden pro Tag fahren kann."""
 
-    fahrstunden = max(0.0, 24.0 - schlafstunden)
+    fahrstunden = max(0.0, fahrstunden_pro_tag)
     return fahrstunden, durchschnitt_kmh * fahrstunden
 
 
@@ -94,6 +95,9 @@ def berechne_schlaf_spots(df, tagesdistanz_km):
     nummer = 1
 
     while ziel_km < gesamt_distanz_km:
+        if gesamt_distanz_km - ziel_km < MIN_RESTDISTANZ_FUER_SCHLAFPUNKT_KM:
+            break
+
         naechster_punkt_index = (df["distanz_km"] - ziel_km).abs().idxmin()
         naechster_punkt = df.loc[naechster_punkt_index]
         route_km = float(naechster_punkt["distanz_km"])
@@ -108,7 +112,7 @@ def berechne_schlaf_spots(df, tagesdistanz_km):
                 "distance_from_route_km": 0.0,
                 "latitude": float(naechster_punkt["lat"]),
                 "longitude": float(naechster_punkt["lon"]),
-                "note": "Automatisch aus Schlafzeit und Durchschnittsgeschwindigkeit berechnet.",
+                "note": "Automatisch aus Fahrstunden und Durchschnittsgeschwindigkeit berechnet.",
                 "is_calculated_sleep_stop": True,
             }
         )

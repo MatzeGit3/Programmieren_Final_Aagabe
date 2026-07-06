@@ -256,7 +256,7 @@ def export_als_html_text(export_daten):
       <div class="label">Geschätzte Fahrzeit</div>
       <div class="zahl">{escape(fahrzeit["anzeige"])}</div>
       <div class="label">bei {fahrzeit["durchschnitt_kmh"]:.1f} km/h</div>
-      <div class="label">{fahrzeit["schlafstunden_pro_tag"]:.1f} h Schlaf pro Tag</div>
+      <div class="label">{fahrzeit["fahrstunden_pro_tag"]:.1f} h Fahrzeit pro Tag</div>
     </div>
   </section>
 
@@ -283,7 +283,7 @@ def export_als_html_text(export_daten):
       <tbody>{_spot_zeilen_html(spots["food"])}</tbody>
     </table>
 
-    <h2>Schlafpunkte</h2>
+    <h2>Übernachtungen und Schlafbereiche</h2>
     <table>
       <thead><tr><th>Name</th><th>Route-km</th><th>Entfernung</th><th>Adresse</th></tr></thead>
       <tbody>{_spot_zeilen_html(schlafpunkte)}</tbody>
