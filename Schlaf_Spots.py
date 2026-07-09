@@ -8,6 +8,7 @@ import streamlit as st
 SLEEP_SPOTS_DATEI = Path("data/sleep_spots/route_sleep_spots.json")
 MAX_UNTERKUENFTE_PRO_ETAPPE = 1
 MIN_RESTDISTANZ_FUER_UNTERKUNFT_KM = 15
+MAX_UNTERKUNFT_ROUTE_ABSTAND_KM = 5.0
 ERDRADIUS_KM = 6371
 
 
@@ -104,20 +105,22 @@ def _distanz_zur_route(df, latitude, longitude):
     return naechster_punkt
 
 
-def _spots_mit_routendistanz(route, spots, distanz_neu_berechnen):
+def _spots_mit_routendistanz(route, spots):
     spots_mit_distanz = []
 
     for spot in spots:
         latitude = spot.get("latitude")
         longitude = spot.get("longitude")
 
-        if distanz_neu_berechnen and latitude is not None and longitude is not None:
-            route_km, abstand_km = _distanz_zur_route(route.df, latitude, longitude)
-        else:
-            route_km = _route_distanz(spot)
-            abstand_km = spot.get("distance_from_route_km")
+        if route.df is None or latitude is None or longitude is None:
+            continue
 
-        if route_km is None:
+        route_km, abstand_km = _distanz_zur_route(route.df, latitude, longitude)
+
+        if route_km is None or abstand_km is None:
+            continue
+
+        if abstand_km > MAX_UNTERKUNFT_ROUTE_ABSTAND_KM:
             continue
 
         spots_mit_distanz.append(
@@ -148,12 +151,10 @@ def bereite_unterkuenfte_vor(route, tagesdistanz_km, max_abstand_km):
     """Waehlt passende Unterkuenfte fuer die Tagesetappen der Route aus."""
 
     routen_spots = lade_schlaf_spots(route.gpx_dateiname)
-    distanz_neu_berechnen = not bool(routen_spots)
     alle_unterkuenfte = routen_spots or lade_alle_schlaf_spots()
     unterkuenfte_mit_distanz = _spots_mit_routendistanz(
         route,
         alle_unterkuenfte,
-        distanz_neu_berechnen,
     )
     etappen_ziele = _etappen_ziele(route.gesamt_distanz_km, tagesdistanz_km)
     ausgewaehlte_unterkuenfte = []
@@ -204,10 +205,9 @@ def bereite_alle_unterkuenfte_vor(route):
     """Bereitet alle passenden Unterkuenfte fuer die Anzeige auf der Karte vor."""
 
     routen_spots = lade_schlaf_spots(route.gpx_dateiname)
-    distanz_neu_berechnen = not bool(routen_spots)
     alle_unterkuenfte = routen_spots or lade_alle_schlaf_spots()
 
     return sorted(
-        _spots_mit_routendistanz(route, alle_unterkuenfte, distanz_neu_berechnen),
+        _spots_mit_routendistanz(route, alle_unterkuenfte),
         key=_route_distanz,
     )
