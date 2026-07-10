@@ -217,7 +217,9 @@ def _berechne_tour_plan(route):
         essen_abstand_km,
         route.df,
     )
-    eigene_trinkstellen, eigene_essens_spots, eigene_uebernachtungen = hole_eigene_spots()
+    eigene_trinkstellen, eigene_essens_spots, eigene_uebernachtungen = hole_eigene_spots(
+        route.gpx_dateiname,
+    )
 
     if spot_auswahl in ["Wasser", "Wasser und Essen"]:
         trinkstellen = trinkstellen + eigene_trinkstellen
@@ -327,8 +329,8 @@ def zeige_spot_erstellung(route):
 
     st.title("Eigenen Spot erstellen")
     st.subheader(route.routenname)
-    st.info("Eigene Spots werden gespeichert und danach in '2. Tour planen' mit angezeigt.")
-    zeige_eigene_spots_formular(route.gesamt_distanz_km)
+    st.info("Eigene Spots werden dauerhaft gespeichert und danach in '2. Tour planen' mit angezeigt.")
+    zeige_eigene_spots_formular(route.gesamt_distanz_km, route.gpx_dateiname)
 
 
 def zeige_export(route):

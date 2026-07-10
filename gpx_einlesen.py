@@ -1,5 +1,7 @@
+import re
 from pathlib import Path
 
+import gpxpy
 import streamlit as st
 
 
@@ -22,6 +24,48 @@ def _route_speichern(gpx_text, routenname, gpx_dateiname, quelle):
         "quelle": quelle,
     }
     st.session_state.pop("bericht_vorbereitet", None)
+
+
+def _dateiname_bereinigen(dateiname):
+    """Erstellt einen sicheren GPX-Dateinamen fuer eigene Uploads."""
+
+    pfad = Path(dateiname)
+    name = re.sub(r"[^A-Za-z0-9_. -]+", "_", pfad.stem).strip(" ._")
+    name = name or "eigene_route"
+    return f"{name}.gpx"
+
+
+def _eindeutiger_dateipfad(dateiname):
+    """Findet einen freien Dateipfad im GPX-Ordner."""
+
+    GPX_ORDNER.mkdir(parents=True, exist_ok=True)
+    ziel = GPX_ORDNER / _dateiname_bereinigen(dateiname)
+
+    if not ziel.exists():
+        return ziel
+
+    zaehler = 2
+    while True:
+        kandidat = ziel.with_name(f"{ziel.stem}_{zaehler}{ziel.suffix}")
+        if not kandidat.exists():
+            return kandidat
+        zaehler += 1
+
+
+def _hochgeladene_route_speichern(hochgeladene_datei):
+    """Speichert eine hochgeladene GPX-Datei dauerhaft im Projektordner."""
+
+    try:
+        gpx_text = hochgeladene_datei.getvalue().decode("utf-8")
+        gpxpy.parse(gpx_text)
+    except Exception as fehler:
+        raise ValueError(
+            "Die hochgeladene Datei konnte nicht als gueltige GPX-Datei gelesen werden."
+        ) from fehler
+
+    ziel = _eindeutiger_dateipfad(hochgeladene_datei.name)
+    ziel.write_text(gpx_text, encoding="utf-8")
+    return gpx_text, ziel
 
 
 def route_zuruecksetzen():
@@ -62,10 +106,16 @@ def _lade_eigene_route():
         return
 
     if st.button("Route hinzufügen", type="primary", use_container_width=True):
+        try:
+            gpx_text, gespeicherte_datei = _hochgeladene_route_speichern(hochgeladene_datei)
+        except ValueError as fehler:
+            st.error(str(fehler))
+            return
+
         _route_speichern(
-            hochgeladene_datei.getvalue().decode("utf-8"),
-            Path(hochgeladene_datei.name).stem,
-            hochgeladene_datei.name,
+            gpx_text,
+            gespeicherte_datei.stem,
+            gespeicherte_datei.name,
             QUELLE_EIGEN,
         )
         st.rerun()

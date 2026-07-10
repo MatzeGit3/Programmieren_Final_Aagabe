@@ -45,7 +45,7 @@ Die App ist bewusst interaktiv aufgebaut. Der Nutzer waehlt zuerst eine Route au
 Die Anwendung bietet folgende Hauptfunktionen:
 
 - Auswahl vorhandener GPX-Dateien aus dem Ordner `GPX_Datain`
-- Upload eigener GPX-Dateien direkt in der Streamlit-App
+- Upload eigener GPX-Dateien direkt in der Streamlit-App mit dauerhafter Speicherung
 - Berechnung der Gesamtdistanz in Kilometern
 - Berechnung der positiven Hoehenmeter
 - Anzeige der Anzahl der GPS-Punkte
@@ -58,7 +58,8 @@ Die Anwendung bietet folgende Hauptfunktionen:
 - Anzeige einer interaktiven Folium-Karte mit Route und Markern
 - Anzeige eines Hoehenprofils mit markierten Spots
 - Tabelle mit ausgewaehlten Spots und deren Entfernung zur Route
-- Hinzufuegen eigener Spots in der aktuellen Session
+- Hinzufuegen, Bearbeiten und Loeschen eigener Spots
+- Dauerhafte Speicherung eigener Spots pro Route
 - Export der geplanten Tour als HTML-Bericht oder JSON-Datei
 
 ## Schnellstart
@@ -111,9 +112,9 @@ Der Einstiegspunkt ist `main.py`. Diese Datei ruft die zentrale App-Funktion aus
 Beim Start zeigt die App zuerst eine Routenauswahl. Es gibt zwei Moeglichkeiten:
 
 - eine vorhandene GPX-Datei aus `GPX_Datain` verwenden
-- eine eigene GPX-Datei hochladen
+- eine eigene GPX-Datei hochladen und dauerhaft speichern
 
-Nach der Auswahl wird die Route in der Session gespeichert, damit die weiteren Ansichten mit derselben Route arbeiten.
+Nach der Auswahl wird die Route in der Session gespeichert, damit die weiteren Ansichten mit derselben Route arbeiten. Hochgeladene GPX-Dateien werden zusaetzlich im Ordner `GPX_Datain` abgelegt und sind danach wie vorhandene Routen auswaehlbar.
 
 ### 2. Route ansehen
 
@@ -145,7 +146,7 @@ Aus Geschwindigkeit und Fahrzeit pro Tag berechnet die App eine ungefaehre Tages
 
 Im zweiten Tab der Tourplanung koennen alle verfuegbaren Spots einer Kategorie angezeigt werden. Auch hier werden die Spots gegen die aktuell ausgewaehlte GPX-Route geprueft.
 
-### 5. Eigene Spots hinzufuegen
+### 5. Eigene Spots verwalten
 
 Eigene Spots koennen fuer drei Kategorien erstellt werden:
 
@@ -153,7 +154,7 @@ Eigene Spots koennen fuer drei Kategorien erstellt werden:
 - Essen
 - Uebernachtung
 
-Diese eigenen Spots werden in der Streamlit-Session gespeichert. Sie bleiben also waehrend der laufenden App-Sitzung verfuegbar, werden aber nicht dauerhaft in eine JSON-Datei geschrieben.
+Diese eigenen Spots werden route-spezifisch in `data/eigene_spots/eigene_spots.json` gespeichert. Bestehende eigene Spots koennen nachtraeglich bearbeitet werden: Kategorie, Name, Route-km, Latitude, Longitude, Adresse und Notiz sind anpassbar. Einzelne Spots oder alle eigenen Spots einer Route koennen geloescht werden.
 
 ### 6. Bericht exportieren
 
@@ -204,12 +205,13 @@ Die Routensuche ist in `geo_utils.py` gebuendelt, nutzt `numpy` fuer die Distanz
 |-- geo_utils.py                    # Gemeinsame Geo- und Distanzfunktionen
 |-- Tabelle_mit_spots.py            # Wasser- und Essens-Spots laden, pruefen, anzeigen
 |-- Schlaf_Spots.py                 # Uebernachtungen laden, pruefen, vorschlagen
-|-- Eigenen_Spots.py                # Eigene Spots in der Session verwalten
+|-- Eigenen_Spots.py                # Eigene Spots dauerhaft verwalten
 |-- export.py                       # HTML- und JSON-Export
 |-- popups.py                       # Popup-Texte fuer Kartenmarker
 |-- route.py                        # Route-Datenklasse
 |-- GPX_Datain/                     # Beispielrouten im GPX-Format
 |-- data/
+|   |-- eigene_spots/               # Dauerhaft gespeicherte eigene Spots
 |   |-- food_spots/                 # Essens-Spots als JSON
 |   |-- sleep_spots/                # Uebernachtungen als JSON
 |   |-- water_stops/                # Wasserstellen als JSON und Bilder
@@ -259,6 +261,10 @@ Verarbeitet Wasser- und Essens-Spots. Die Datei laedt JSON-Daten, berechnet die 
 
 Verarbeitet Uebernachtungen. Die Datei prueft Unterkuenfte gegen die Route und waehlt passende Vorschlaege fuer die geplanten Tagesetappen aus.
 
+### `Eigenen_Spots.py`
+
+Verwaltet eigene Spots fuer eine Route. Das Modul laedt und speichert die Spots dauerhaft als JSON, stellt Formulare zum Hinzufuegen und Bearbeiten bereit und synchronisiert die Daten mit der Streamlit-Session.
+
 ### `Karte_erstellen.py`
 
 Erstellt die interaktive Karte mit `folium`. Angezeigt werden Route, Start, Ziel und die ausgewaehlten Spots.
@@ -301,6 +307,6 @@ Das Projekt verwendet:
 
 - Die Entfernungen zwischen Spots und Route sind Luftlinienabstaende, keine echten Wege- oder Fahrdistanzen.
 - Die Spot-Daten stammen aus vorbereiteten JSON-Dateien und sollten vor einer echten Tour manuell geprueft werden.
-- Eigene Spots werden nur in der aktuellen Streamlit-Session gespeichert.
-- Wenn neue GPX-Dateien direkt auswaehlbar sein sollen, muessen sie im Ordner `GPX_Datain` liegen.
+- Eigene Spots werden pro Route dauerhaft in `data/eigene_spots/eigene_spots.json` gespeichert.
+- Hochgeladene GPX-Dateien werden im Ordner `GPX_Datain` gespeichert und sind danach direkt auswaehlbar.
 - Falls eine Route sehr wenige GPX-Punkte enthaelt, kann die Naehe eines Spots ungenauer berechnet werden.
