@@ -189,6 +189,7 @@ Aktuelle Grenzwerte:
 - Uebernachtungen: maximal `5.0 km` von der Route entfernt
 
 Die Distanzberechnung erfolgt ueber Koordinaten in WGS84 und nutzt eine Haversine-Berechnung fuer Luftlinienabstaende.
+Die Routensuche ist in `geo_utils.py` gebuendelt, nutzt `numpy` fuer die Distanzberechnung gegen alle GPX-Punkte und wird in den Spot-Modulen mit `st.cache_data` zwischengespeichert.
 
 ## Projektstruktur
 
@@ -200,13 +201,13 @@ Die Distanzberechnung erfolgt ueber Koordinaten in WGS84 und nutzt eine Haversin
 |-- Routen_Stats.py                 # GPX-Auswertung, Distanz, Hoehenmeter, Fahrzeit
 |-- Karte_erstellen.py              # Folium-Karte mit Route und Markern
 |-- Hoehenprofil.py                 # Hoehenprofil mit Spot-Markierungen
+|-- geo_utils.py                    # Gemeinsame Geo- und Distanzfunktionen
 |-- Tabelle_mit_spots.py            # Wasser- und Essens-Spots laden, pruefen, anzeigen
 |-- Schlaf_Spots.py                 # Uebernachtungen laden, pruefen, vorschlagen
 |-- Eigenen_Spots.py                # Eigene Spots in der Session verwalten
 |-- export.py                       # HTML- und JSON-Export
 |-- popups.py                       # Popup-Texte fuer Kartenmarker
 |-- route.py                        # Route-Datenklasse
-|-- daten_speichern.py              # Hilfsfunktionen zum Speichern von Daten
 |-- GPX_Datain/                     # Beispielrouten im GPX-Format
 |-- data/
 |   |-- food_spots/                 # Essens-Spots als JSON
@@ -245,6 +246,10 @@ Parst GPX-Dateien mit `gpxpy` und berechnet daraus:
 - GPS-Punktliste als DataFrame
 - Fahrzeit
 - Tagesdistanz
+
+### `geo_utils.py`
+
+Buendelt die gemeinsamen Geo-Funktionen. Hier liegen die Haversine-Distanzberechnung, die Extraktion gueltiger Routenkoordinaten und die Pruefung, wie weit ein Spot von der aktuellen GPX-Route entfernt ist.
 
 ### `Tabelle_mit_spots.py`
 
@@ -286,6 +291,7 @@ Das Projekt verwendet:
 
 - `streamlit` fuer die Web-App
 - `pandas` fuer tabellarische Routendaten
+- `numpy` fuer vektorisierte Distanzberechnungen
 - `gpxpy` zum Parsen von GPX-Dateien
 - `folium` fuer interaktive Karten
 - `altair` fuer das Hoehenprofil

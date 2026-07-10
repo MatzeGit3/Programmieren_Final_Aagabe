@@ -1,5 +1,6 @@
 import folium
 
+from geo_utils import routen_koordinaten
 from popups import (
     essensspot_popup,
     start_popup,
@@ -10,6 +11,7 @@ from popups import (
 
 
 MAX_KARTENPUNKTE = 1500
+STANDARD_MITTELPUNKT = [47.0, 11.0]
 
 
 def _reduziere_koordinaten(koordinaten):
@@ -34,32 +36,40 @@ def erstelle_folium_karte(
 ):
     """Erstellt eine Folium-Karte mit Route, Start, Ziel und optionalen Spots."""
 
-    koordinaten = df[["lat", "lon"]].dropna().values.tolist()
+    koordinaten = routen_koordinaten(df)
     koordinaten_fuer_karte = _reduziere_koordinaten(koordinaten)
-    mittelpunkt = [df["lat"].mean(), df["lon"].mean()]
+    mittelpunkt = (
+        [
+            sum(punkt[0] for punkt in koordinaten) / len(koordinaten),
+            sum(punkt[1] for punkt in koordinaten) / len(koordinaten),
+        ]
+        if koordinaten
+        else STANDARD_MITTELPUNKT
+    )
     karte = folium.Map(location=mittelpunkt, zoom_start=11, tiles="OpenStreetMap")
 
-    folium.PolyLine(
-        koordinaten_fuer_karte,
-        color="blue",
-        weight=4,
-        opacity=0.8,
-        tooltip=routenname,
-    ).add_to(karte)
+    if koordinaten_fuer_karte:
+        folium.PolyLine(
+            koordinaten_fuer_karte,
+            color="blue",
+            weight=4,
+            opacity=0.8,
+            tooltip=routenname,
+        ).add_to(karte)
 
-    folium.Marker(
-        koordinaten[0],
-        popup=start_popup(routenname),
-        tooltip="Start",
-        icon=folium.Icon(color="green", icon="play"),
-    ).add_to(karte)
+        folium.Marker(
+            koordinaten[0],
+            popup=start_popup(routenname),
+            tooltip="Start",
+            icon=folium.Icon(color="green", icon="play"),
+        ).add_to(karte)
 
-    folium.Marker(
-        koordinaten[-1],
-        popup=ziel_popup(routenname),
-        tooltip="Ziel",
-        icon=folium.Icon(color="red", icon="flag"),
-    ).add_to(karte)
+        folium.Marker(
+            koordinaten[-1],
+            popup=ziel_popup(routenname),
+            tooltip="Ziel",
+            icon=folium.Icon(color="red", icon="flag"),
+        ).add_to(karte)
 
     for stop in trinkstellen or []:
         latitude = stop.get("latitude")
@@ -103,5 +113,7 @@ def erstelle_folium_karte(
             icon=folium.Icon(color="purple", icon="bed", prefix="fa"),
         ).add_to(karte)
 
-    karte.fit_bounds(koordinaten_fuer_karte)
+    if koordinaten_fuer_karte:
+        karte.fit_bounds(koordinaten_fuer_karte)
+
     return karte

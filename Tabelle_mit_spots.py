@@ -1,14 +1,14 @@
 import json
-from math import asin, cos, radians, sin, sqrt
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
+from geo_utils import spots_nahe_route
+
 
 WATER_STOPS_DATEI = Path("data/water_stops/route_water_stops.json")
 FOOD_SPOTS_DATEI = Path("data/food_spots/route_food_spots.json")
-ERDRADIUS_KM = 6371
 MAX_WASSER_ROUTE_ABSTAND_KM = 2.0
 MAX_ESSEN_ROUTE_ABSTAND_KM = 0.8
 ANZEIGE_SPALTEN = {
@@ -89,54 +89,9 @@ def _spot_distanz(spot):
     return None
 
 
-def _distanz_km(lat1, lon1, lat2, lon2):
-    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-    lat_diff = lat2 - lat1
-    lon_diff = lon2 - lon1
-    a = sin(lat_diff / 2) ** 2 + cos(lat1) * cos(lat2) * sin(lon_diff / 2) ** 2
-    return ERDRADIUS_KM * 2 * asin(sqrt(a))
-
-
-def _distanz_zur_route(df, latitude, longitude):
-    naechster_punkt = None
-
-    for punkt in df[["lat", "lon", "distanz_km"]].dropna().itertuples(index=False):
-        distanz = _distanz_km(latitude, longitude, punkt.lat, punkt.lon)
-        if naechster_punkt is None or distanz < naechster_punkt[1]:
-            naechster_punkt = (punkt.distanz_km, distanz)
-
-    if naechster_punkt is None:
-        return None, None
-
-    return naechster_punkt
-
-
+@st.cache_data(show_spinner=False)
 def _spots_mit_routendistanz(spots, route_df, max_route_abstand_km):
-    spots_mit_distanz = []
-
-    for spot in spots:
-        latitude = spot.get("latitude")
-        longitude = spot.get("longitude")
-
-        if route_df is None or latitude is None or longitude is None:
-            continue
-
-        route_km, abstand_km = _distanz_zur_route(route_df, latitude, longitude)
-        if route_km is None or abstand_km is None:
-            continue
-
-        if abstand_km > max_route_abstand_km:
-            continue
-
-        spots_mit_distanz.append(
-            {
-                **spot,
-                "route_distance_km": route_km,
-                "distance_from_route_km": abstand_km,
-            }
-        )
-
-    return spots_mit_distanz
+    return spots_nahe_route(spots, route_df, max_route_abstand_km)
 
 
 def _waehle_spots_nach_abstand(spots, abstand_km, gesamt_distanz_km):

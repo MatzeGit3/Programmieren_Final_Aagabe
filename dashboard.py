@@ -453,7 +453,16 @@ def starte_app():
         return
 
     ansicht = zeige_home_auswahl(routenname)
-    df, gesamt_distanz_km, gesamt_hoehenmeter = _berechne_route(gpx_text)
+    try:
+        df, gesamt_distanz_km, gesamt_hoehenmeter = _berechne_route(gpx_text)
+    except ValueError as fehler:
+        st.error(str(fehler))
+        st.info("Waehle eine andere Route oder lade eine gueltige GPX-Datei hoch.")
+        if st.button("Route zuruecksetzen", use_container_width=True):
+            route_zuruecksetzen()
+            st.rerun()
+        return
+
     route = Route(
         df=df,
         routenname=routenname,

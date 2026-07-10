@@ -1,29 +1,23 @@
-from math import atan2, cos, radians, sin, sqrt
-
 import gpxpy
 import pandas as pd
 
+from geo_utils import berechne_distanz_km
 
-ERDRADIUS_KM = 6371.0
 
-
-def berechne_distanz_km(lat1, lon1, lat2, lon2):
-    """Berechnet die Entfernung zwischen zwei GPS-Punkten in Kilometern."""
-
-    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-    delta_lat = lat2 - lat1
-    delta_lon = lon2 - lon1
-
-    a = sin(delta_lat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(delta_lon / 2) ** 2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-
-    return ERDRADIUS_KM * c
+ROUTEN_SPALTEN = ["distanz_km", "hoehe_m", "lat", "lon"]
 
 
 def gpx_zu_dataframe(gpx_text):
-    """Liest GPX-Text ein und gibt Routendaten, Distanz und Höhenmeter zurück."""
+    """Liest GPX-Text ein und gibt Routendaten, Distanz und Hoehenmeter zurueck."""
 
-    gpx = gpxpy.parse(gpx_text)
+    try:
+        gpx = gpxpy.parse(gpx_text)
+    except Exception as fehler:
+        raise ValueError(
+            "Die GPX-Datei konnte nicht gelesen werden. "
+            "Bitte pruefe, ob die Datei eine gueltige GPX-Datei ist."
+        ) from fehler
+
     punkte = []
     gesamt_distanz_km = 0.0
     gesamt_hoehenmeter = 0.0
@@ -32,6 +26,9 @@ def gpx_zu_dataframe(gpx_text):
     for track in gpx.tracks:
         for segment in track.segments:
             for punkt in segment.points:
+                if punkt.latitude is None or punkt.longitude is None:
+                    continue
+
                 if letzter_punkt is not None:
                     gesamt_distanz_km += berechne_distanz_km(
                         letzter_punkt.latitude,
@@ -55,11 +52,15 @@ def gpx_zu_dataframe(gpx_text):
                 )
                 letzter_punkt = punkt
 
-    return pd.DataFrame(punkte), gesamt_distanz_km, gesamt_hoehenmeter
+    return (
+        pd.DataFrame(punkte, columns=ROUTEN_SPALTEN),
+        gesamt_distanz_km,
+        gesamt_hoehenmeter,
+    )
 
 
 def berechne_fahrzeit(gesamt_distanz_km, durchschnitt_kmh):
-    """Berechnet aus Distanz und Geschwindigkeit eine geschätzte Fahrzeit."""
+    """Berechnet aus Distanz und Geschwindigkeit eine geschaetzte Fahrzeit."""
 
     if durchschnitt_kmh <= 0:
         return 0.0, "unbekannt"
