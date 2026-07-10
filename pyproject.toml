@@ -11,5 +11,9 @@ readme = "README.md"
 license = {text = "MIT"}
 
 
+[tool.poetry]
+package-mode = false
+
+
 [tool.pdm]
 distribution = false
